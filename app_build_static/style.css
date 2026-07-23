@@ -402,3 +402,12 @@ footer {
     color: var(--color-text-secondary);
     line-height: 1.5;
 }
+
+
+/* Grid 3 Columns Style (NEW) */
+.grid-3col {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
