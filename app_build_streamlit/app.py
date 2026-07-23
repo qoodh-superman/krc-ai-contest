@@ -76,7 +76,11 @@ def load_data():
     voc_df = pd.DataFrame()
     land_df = pd.DataFrame()
     try:
-        pension_path = os.path.join(BASE_DIR, 'data/한국농어촌공사_농지연금사업 연도 연령대 지역 정보 제공_20251126.csv')
+        # Robustly handle single or double space in pension file name
+        pension_path = os.path.join(BASE_DIR, 'data/한국농어촌공사_농지연금사업  연도 연령대 지역 정보 제공_20251126.csv')
+        if not os.path.exists(pension_path):
+            pension_path = os.path.join(BASE_DIR, 'data/한국농어촌공사_농지연금사업 연도 연령대 지역 정보 제공_20251126.csv')
+            
         voc_path = os.path.join(BASE_DIR, 'data/한국농어촌공사_고객의 소리 유형분석_20241231.csv')
         
         # Load land prices
@@ -88,9 +92,19 @@ def load_data():
         if os.path.exists(voc_path): voc_df = pd.read_csv(voc_path, encoding='cp949')
         
         dfs = []
-        if os.path.exists(seoul_path): dfs.append(pd.read_csv(seoul_path, encoding='utf-8'))
-        if os.path.exists(gg_path): dfs.append(pd.read_csv(gg_path, encoding='utf-8'))
-        if os.path.exists(gn_path): dfs.append(pd.read_csv(gn_path, encoding='utf-8'))
+        if os.path.exists(seoul_path):
+            df_seoul = pd.read_csv(seoul_path, encoding='utf-8')
+            df_seoul['시도'] = '서울'
+            dfs.append(df_seoul)
+        if os.path.exists(gg_path):
+            df_gg = pd.read_csv(gg_path, encoding='utf-8')
+            df_gg['시도'] = '경기'
+            dfs.append(df_gg)
+        if os.path.exists(gn_path):
+            df_gn = pd.read_csv(gn_path, encoding='utf-8')
+            df_gn['시도'] = '경남'
+            dfs.append(df_gn)
+            
         if dfs:
             land_df = pd.concat(dfs, ignore_index=True)
             # Ensure price column is numeric
@@ -113,11 +127,29 @@ with col1:
             age = st.slider("가입 당시 연령 (세)", 60, 90, 65)
             region = st.selectbox("농지 소재지 (시도)", ["경기", "서울", "경남", "그 외 지역"])
             
-            col_a1, col_a2 = st.columns(2)
-            with col_a1:
-                sigungu = st.text_input("시군구/읍면동 (예: 내서읍 삼계리)", "")
-            with col_a2:
-                bunji = st.text_input("지번 (예: 1411-2)", "")
+            sigungu = ""
+            bunji = ""
+            if region in ["경기", "서울", "경남"] and not land_df.empty:
+                # Filter by selected Sido
+                filtered_sido = land_df[land_df['시도'] == region]
+                unique_dongs = sorted(filtered_sido['법정동명'].dropna().unique())
+                
+                col_a1, col_a2 = st.columns(2)
+                with col_a1:
+                    sigungu = st.selectbox("읍면동 선택", unique_dongs)
+                
+                # Filter dongs to get unique bunjis
+                filtered_dong = filtered_sido[filtered_sido['법정동명'] == sigungu]
+                unique_bunjis = sorted(filtered_dong['지번'].dropna().astype(str).unique())
+                
+                with col_a2:
+                    bunji = st.selectbox("지번 선택", unique_bunjis)
+            else:
+                col_a1, col_a2 = st.columns(2)
+                with col_a1:
+                    sigungu = st.text_input("시군구/읍면동 (그 외 지역)", "")
+                with col_a2:
+                    bunji = st.text_input("지번 (그 외 지역)", "")
             area = st.number_input("농지 면적 (㎡)", min_value=1000, max_value=50000, value=3000, step=500)
             debt_amount = st.number_input("기존 농지 담보 대출금액 (원)", min_value=0, value=0, step=10000000, format="%d")
             
@@ -147,22 +179,26 @@ with col1:
                     is_exact_match = False
                     
                     if not land_df.empty and region in ["서울", "경기", "경남"]:
-                        # 1순위: 법정동명 + 지번 완전 일치 탐색
+                        # 1순위: 시도 + 법정동명 + 지번 완전 일치 탐색
                         exact_match = land_df[
-                            (land_df['법정동명'].fillna('').str.contains(sigungu)) & 
-                            (land_df['지번'].fillna('').astype(str) == str(bunji))
+                            (land_df['시도'] == region) &
+                            (land_df['법정동명'] == sigungu) & 
+                            (land_df['지번'].astype(str) == str(bunji))
                         ]
                         if not exact_match.empty:
                             target_price = exact_match['공시지가'].mean()
                             is_exact_match = True
                         else:
                             # 2순위: 해당 읍면동 평균 공시지가 적용
-                            partial_match = land_df[land_df['법정동명'].fillna('').str.contains(sigungu)] if sigungu else pd.DataFrame()
+                            partial_match = land_df[
+                                (land_df['시도'] == region) &
+                                (land_df['법정동명'] == sigungu)
+                            ]
                             if not partial_match.empty:
                                 target_price = partial_match['공시지가'].mean()
                             else:
                                 # 3순위: 해당 시도 전체 평균
-                                target_price = land_df['공시지가'].mean() # 샘플데이터이므로 대략적인 평균
+                                target_price = land_df[land_df['시도'] == region]['공시지가'].mean()
                     
                     if pd.isna(target_price): target_price = 300000
                     
