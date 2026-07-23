@@ -151,7 +151,7 @@ with col1:
                 with col_a2:
                     bunji = st.text_input("지번 (그 외 지역)", "")
             area = st.number_input("농지 면적 (㎡)", min_value=1000, max_value=50000, value=3000, step=500)
-            debt_amount = st.number_input("기존 농지 담보 대출금액 (원)", min_value=0, value=0, step=10000000, format="%d")
+            debt_amount = st.number_input("기존 농지 담보 대출금액 (원)", min_value=0, value=50000000, step=10000000, format="%d", help="한국농어촌공사의 경영회생지원 사업 부채 하한 기준인 50,000,000원을 참조 기본값으로 제공합니다. (출처: 한국농어촌공사 FAQ 및 2025년 경영회생 지원현황 통계)")
             
             st.markdown("##### 🎁 특별 우대 혜택 (해당 시 체크)")
             col_c1, col_c2 = st.columns(2)
