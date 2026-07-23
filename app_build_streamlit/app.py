@@ -83,28 +83,38 @@ def load_data():
             
         voc_path = os.path.join(BASE_DIR, 'data/한국농어촌공사_고객의 소리 유형분석_20241231.csv')
         
-        # Load land prices
-        seoul_path = os.path.join(BASE_DIR, 'data/서울_개별공시지가_20260526_sample.csv')
-        gg_path = os.path.join(BASE_DIR, 'data/경기도_개별공시지가_20260526_sample.csv')
-        gn_path = os.path.join(BASE_DIR, 'data/경남_개별공시지가_20260526.csv')
+        # Load land prices dynamically from data folder
+        import glob
+        dfs = []
+        land_files = glob.glob(os.path.join(BASE_DIR, 'data/*_개별공시지가_*.csv'))
         
+        sido_mapping = {
+            '서울': '서울',
+            '경기': '경기',
+            '경기도': '경기',
+            '경남': '경남',
+            '강원': '강원',
+            '경북': '경북',
+            '전남': '전남',
+            '제주': '제주',
+            '충남': '충남'
+        }
+        
+        for fpath in land_files:
+            fname = os.path.basename(fpath)
+            prefix = fname.split('_')[0]
+            sido_name = sido_mapping.get(prefix, prefix)
+            try:
+                df_temp = pd.read_csv(fpath, encoding='utf-8')
+                df_temp['시도'] = sido_name
+                dfs.append(df_temp)
+                logger.info(f"Loaded land price file: {fname} as {sido_name} ({len(df_temp)} rows)")
+            except Exception as e:
+                logger.error(f"Error loading {fname}: {e}")
+                
         if os.path.exists(pension_path): pension_df = pd.read_csv(pension_path, encoding='cp949')
         if os.path.exists(voc_path): voc_df = pd.read_csv(voc_path, encoding='cp949')
         
-        dfs = []
-        if os.path.exists(seoul_path):
-            df_seoul = pd.read_csv(seoul_path, encoding='utf-8')
-            df_seoul['시도'] = '서울'
-            dfs.append(df_seoul)
-        if os.path.exists(gg_path):
-            df_gg = pd.read_csv(gg_path, encoding='utf-8')
-            df_gg['시도'] = '경기'
-            dfs.append(df_gg)
-        if os.path.exists(gn_path):
-            df_gn = pd.read_csv(gn_path, encoding='utf-8')
-            df_gn['시도'] = '경남'
-            dfs.append(df_gn)
-            
         if dfs:
             land_df = pd.concat(dfs, ignore_index=True)
             # Ensure price column is numeric
@@ -136,11 +146,24 @@ with col1:
         st.subheader("💡 내 농지연금 예상 수령액 알아보기")
         if True: # Removed st.form for dynamic dropdowns
             age = st.slider("가입 당시 연령 (세)", 60, 90, 65)
-            region = st.selectbox("농지 소재지 (시도)", ["경기", "서울", "경남", "그 외 지역"])
+            # Get list of loaded Sidos dynamically
+            sido_options = []
+            if not land_df.empty:
+                sido_options = sorted(land_df['시도'].dropna().unique().tolist())
+            
+            # Prioritize custom order for standard dropdown appearance
+            custom_order = ["경기", "서울", "경남", "강원", "경북", "전남", "제주", "충남"]
+            ordered_sidos = [s for s in custom_order if s in sido_options]
+            for s in sido_options:
+                if s not in ordered_sidos:
+                    ordered_sidos.append(s)
+            ordered_sidos.append("그 외 지역")
+            
+            region = st.selectbox("농지 소재지 (시도)", ordered_sidos)
             
             sigungu = ""
             bunji = ""
-            if region in ["경기", "서울", "경남"] and not land_df.empty:
+            if region in sido_options and not land_df.empty:
                 # Filter by selected Sido
                 filtered_sido = land_df[land_df['시도'] == region]
                 unique_dongs = sorted(filtered_sido['법정동명'].dropna().unique())
@@ -279,8 +302,18 @@ with col1:
                 st.caption("※ 위 금액은 공공데이터(경남 공시지가 등) 융합 및 KRC 규정을 완벽 반영한 AI 추정치입니다.")
                 
                 # [제안 B 적용] 통계청 가계수지 데이터 융합 리포트
-                mock_living_cost = {"서울": 2500000, "경기": 2000000, "경남": 1700000, "그 외 지역": 1500000}
-                local_living_cost = mock_living_cost[region]
+                mock_living_cost = {
+                    "서울": 2500000, 
+                    "경기": 2000000, 
+                    "제주": 1800000, 
+                    "경남": 1700000, 
+                    "경북": 1600000, 
+                    "충남": 1600000, 
+                    "강원": 1600000, 
+                    "전남": 1500000, 
+                    "그 외 지역": 1500000
+                }
+                local_living_cost = mock_living_cost.get(region, 1500000)
                 coverage_rate = (estimated / local_living_cost) * 100
                 
                 st.markdown("---")
@@ -295,7 +328,7 @@ with col1:
                     st.error(f"🔍 예상 농지연금으로 지역 평균 생활비의 **{coverage_rate:.1f}%** 충당이 예상됩니다. '초기 집중 수령형' 등 다른 지급 방식을 고려해보세요. (최저생계형 페르소나)")
                 
                 # 💬 Compute recommended questions and save to state
-                addr_str = f"{region} {sigungu} {bunji}" if region in ["경기", "서울", "경남"] else f"{region} {sigungu} {bunji}"
+                addr_str = f"{region} {sigungu} {bunji}" if region in sido_options else f"{region} {sigungu} {bunji}"
                 st.session_state.q1_msg = f"안녕하세요. {addr_str} 농지 {area}㎡를 소유하고 있는 {age}세 농업인입니다. 예상 월 수령액은 {int(estimated):,}원(생활비 충당률 {coverage_rate:.1f}%)으로 계산되었습니다. 제가 실제로 가입 신청하려면 어떤 절차를 밟아야 하고, 필요한 지참 서류는 무엇인가요?"
                 st.session_state.q2_msg = f"제 농지({addr_str})의 예상 가치는 {int(total_land_value):,}원인데, 혹시 기존 담보 대출금({debt_amount:,}원)이 있는 상태에서 가입하려면 수령액에서 차감되는 비율이나 가입 승인 제한이 어떻게 되나요?"
                 st.session_state.q3_msg = f"농지연금에 가입된 제 농지({addr_str}) 위에 공사 관리 농업기반시설(구거 또는 농로)이 지나가고 있습니다. 이 농지연금 계약을 유지하면서 진입로 개설을 위한 목적외 사용 승인 신청이 가능한가요?"
