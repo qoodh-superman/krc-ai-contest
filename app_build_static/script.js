@@ -53,6 +53,35 @@ document.addEventListener('DOMContentLoaded', () => {
             regionChart.update();
         });
 
+        // 3.5. Render Sido Cumulative Subscription Chart (NEW)
+        const sidoCtx = document.getElementById('sidoSubChart').getContext('2d');
+        const sidos = Object.keys(data.cumulative_sido_subscriptions);
+        const subCounts = Object.values(data.cumulative_sido_subscriptions);
+        
+        new Chart(sidoCtx, {
+            type: 'bar',
+            data: {
+                labels: sidos,
+                datasets: [{
+                    label: '누적 가입건수 (건)',
+                    data: subCounts,
+                    backgroundColor: 'rgba(46, 204, 113, 0.7)',
+                    borderColor: 'rgba(39, 174, 96, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: '#2d3748' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } },
+                    x: { ticks: { color: '#2d3748' }, grid: { display: false } }
+                }
+            }
+        });
+
         // 4. Render VOC Chart
         const vocCtx = document.getElementById('vocChart').getContext('2d');
         new Chart(vocCtx, {
