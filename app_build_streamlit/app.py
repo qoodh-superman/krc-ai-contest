@@ -237,7 +237,10 @@ with col2:
     env_path = os.path.join(BASE_DIR, '.env')
     if os.path.exists(env_path):
         load_dotenv(env_path)
-    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    try:
+        GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+    except Exception:
+        GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
     try:
         qa_path = os.path.join(BASE_DIR, 'data/qa_pairs.json')
@@ -253,7 +256,7 @@ with col2:
             return "API 키가 설정되지 않았습니다. 관리자에게 문의하세요."
             
         genai.configure(api_key=GOOGLE_API_KEY)
-        model = genai.GenerativeModel('gemini-flash-latest')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         context = "\n".join([f"Q: {qa['제목']}\nA: {qa['내용']}" for qa in qa_list[:5]])
         
