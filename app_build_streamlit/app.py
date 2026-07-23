@@ -87,7 +87,7 @@ def load_data():
             voc_df = pd.read_csv(voc_path, encoding='cp949')
             
         if os.path.exists(gyeongnam_path):
-            gn_df = pd.read_csv(gyeongnam_path, encoding='cp949')
+            gn_df = pd.read_csv(gyeongnam_path, encoding='utf-8')
             # 9th column is '공시지가(원/㎡)'
             if not gn_df.empty and gn_df.shape[1] > 8:
                 avg_gyeongnam_price = pd.to_numeric(gn_df.iloc[:, 8], errors='coerce').mean()
