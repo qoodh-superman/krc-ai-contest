@@ -118,6 +118,17 @@ def load_data():
 
 pension_df, voc_df, land_df = load_data()
 
+
+# Initialize states
+if "calculated" not in st.session_state:
+    st.session_state.calculated = False
+if "q1_msg" not in st.session_state:
+    st.session_state.q1_msg = ""
+if "q2_msg" not in st.session_state:
+    st.session_state.q2_msg = ""
+if "q3_msg" not in st.session_state:
+    st.session_state.q3_msg = ""
+
 col1, col2 = st.columns([1, 1])
 
 with col1:
@@ -164,6 +175,9 @@ with col1:
             submitted = st.button("예상 수령액 정밀 계산", type="primary")
 
     if submitted:
+        st.session_state.calculated = True
+
+    if st.session_state.calculated:
         if not pension_df.empty:
             age_bracket = f"{(age // 10) * 10}대"
             filtered = pension_df[pension_df['가입당시연령'] == age_bracket]
@@ -280,27 +294,12 @@ with col1:
                 else:
                     st.error(f"🔍 예상 농지연금으로 지역 평균 생활비의 **{coverage_rate:.1f}%** 충당이 예상됩니다. '초기 집중 수령형' 등 다른 지급 방식을 고려해보세요. (최저생계형 페르소나)")
                 
-                # 💬 AI 컨설턴트 맞춤 질문 3대 유형 추천 기능
-                st.markdown("---")
-                st.markdown("### 💬 AI 컨설턴트 맞춤 질문 추천 (3개 유형)")
-                st.caption("원하는 질문 버튼을 클릭하면 우측 입력창에 자동으로 채워지며, 수정하여 전송할 수 있습니다.")
-                
-                # Make address string clean
+                # 💬 Compute recommended questions and save to state
                 addr_str = f"{region} {sigungu} {bunji}" if region in ["경기", "서울", "경남"] else f"{region} {sigungu} {bunji}"
-                
-                q1 = f"안녕하세요. {addr_str} 농지 {area}㎡를 소유하고 있는 {age}세 농업인입니다. 예상 월 수령액은 {int(estimated):,}원(생활비 충당률 {coverage_rate:.1f}%)으로 계산되었습니다. 제가 실제로 가입 신청하려면 어떤 절차를 밟아야 하고, 필요한 지참 서류는 무엇인가요?"
-                q2 = f"제 농지({addr_str})의 예상 가치는 {int(total_land_value):,}원인데, 혹시 기존 담보 대출금({debt_amount:,}원)이 있는 상태에서 가입하려면 수령액에서 차감되는 비율이나 가입 승인 제한이 어떻게 되나요?"
-                q3 = f"농지연금에 가입된 제 농지({addr_str}) 위에 공사 관리 농업기반시설(구거 또는 농로)이 지나가고 있습니다. 이 농지연금 계약을 유지하면서 진입로 개설을 위한 목적외 사용 승인 신청이 가능한가요?"
-                
-                if st.button("📋 1. 가입 절차 및 필수 서류 문의하기", use_container_width=True):
-                    st.session_state.chat_input_val = q1
-                    st.rerun()
-                if st.button("💰 2. 기존 대출 영향 및 가입 요건 문의하기", use_container_width=True):
-                    st.session_state.chat_input_val = q2
-                    st.rerun()
-                if st.button("🌾 3. 농업기반시설 목적외 사용 가능 여부 문의하기", use_container_width=True):
-                    st.session_state.chat_input_val = q3
-                    st.rerun()
+                st.session_state.q1_msg = f"안녕하세요. {addr_str} 농지 {area}㎡를 소유하고 있는 {age}세 농업인입니다. 예상 월 수령액은 {int(estimated):,}원(생활비 충당률 {coverage_rate:.1f}%)으로 계산되었습니다. 제가 실제로 가입 신청하려면 어떤 절차를 밟아야 하고, 필요한 지참 서류는 무엇인가요?"
+                st.session_state.q2_msg = f"제 농지({addr_str})의 예상 가치는 {int(total_land_value):,}원인데, 혹시 기존 담보 대출금({debt_amount:,}원)이 있는 상태에서 가입하려면 수령액에서 차감되는 비율이나 가입 승인 제한이 어떻게 되나요?"
+                st.session_state.q3_msg = f"농지연금에 가입된 제 농지({addr_str}) 위에 공사 관리 농업기반시설(구거 또는 농로)이 지나가고 있습니다. 이 농지연금 계약을 유지하면서 진입로 개설을 위한 목적외 사용 승인 신청이 가능한가요?"
+
 
                 st.markdown("---")
                 st.markdown("#### 📊 타 지역 공시지가 비교")
@@ -382,14 +381,34 @@ with col2:
             {"role": "assistant", "content": "안녕하세요! 한국농어촌공사 통합 민원 AI 컨설턴트입니다. 농지연금이나 농로/저수지 등 기반시설 목적외 사용 승인 등 무엇이든 질문해 주세요."}
         ]
         
-    for msg in st.session_state.chat_history:
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
+    # Render chat messages inside a scrollable box for better layout
+    chat_container = st.container(height=400)
+    with chat_container:
+        for msg in st.session_state.chat_history:
+            with st.chat_message(msg["role"]):
+                st.write(msg["content"])
+
+    # --- Render Recommended Questions in col2 right above the chat input box ---
+    if st.session_state.calculated and st.session_state.q1_msg:
+        st.markdown("##### 💡 맞춤 추천 질문 (클릭 시 입력창에 즉시 입력)")
+        col_q1, col_q2, col_q3 = st.columns(3)
+        with col_q1:
+            if st.button("📋 1. 가입절차/서류", use_container_width=True):
+                st.session_state.chat_input_val = st.session_state.q1_msg
+                st.rerun()
+        with col_q2:
+            if st.button("💰 2. 대출 영향", use_container_width=True):
+                st.session_state.chat_input_val = st.session_state.q2_msg
+                st.rerun()
+        with col_q3:
+            if st.button("🌾 3. 목적외사용", use_container_width=True):
+                st.session_state.chat_input_val = st.session_state.q3_msg
+                st.rerun()
 
     if "chat_input_val" not in st.session_state:
         st.session_state.chat_input_val = ""
         
-    chat_input = st.text_area("질문을 입력해주세요. (선택한 추천 질문이 여기에 채워집니다.)", value=st.session_state.chat_input_val, height=120)
+    chat_input = st.text_area("질문을 입력해주세요. (추천 질문 버튼을 누르면 자동 완성됩니다.)", value=st.session_state.chat_input_val, height=100)
     
     col_send, col_clear = st.columns([1, 1])
     send_clicked = False
