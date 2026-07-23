@@ -280,7 +280,7 @@ with col2:
                 if any(len(w) > 1 and w in user_question for w in words) or (user_question in qa['제목']):
                     return f"💡 **(AI 서버 연결 지연으로 로컬 지식베이스에서 찾은 답변입니다.)**\n\n**Q. {qa['제목']}**\n\nA. {qa['내용']}"
             
-            return "죄송합니다. 현재 AI 서버 인증 오류로 실시간 답변을 생성할 수 없습니다."
+            return f"🚨 **API 에러 발생 (디버깅용 로그):**\n```\n{str(e)}\n```\n\n(설정된 API 키가 유효하지 않거나 구글 서버 문제일 수 있습니다.)"
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = [
