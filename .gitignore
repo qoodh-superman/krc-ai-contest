@@ -1,0 +1,16 @@
+.env
+logs/
+__pycache__/
+*.pyc
+scratch/
+.agents/
+.gemini/
+
+# --- 추가: 배포에 불필요한 무거운 데이터 및 문서 제외 ---
+base_data/
+공공데이터 활용대상/
+*.pdf
+cols.txt
+columns.txt
+new_columns.txt
+scratch_voc.txt
