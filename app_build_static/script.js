@@ -32,10 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: '#f0f0f0' } } },
+                plugins: { legend: { labels: { color: '#1a1a1a' } } },
                 scales: {
-                    y: { beginAtZero: true, ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                    x: { ticks: { color: '#a0a0a0' }, grid: { display: false } }
+                    y: { beginAtZero: true, ticks: { color: '#2d3748' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } },
+                    x: { ticks: { color: '#2d3748' }, grid: { display: false } }
                 }
             }
         });
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { color: '#f0f0f0' } } }
+                plugins: { legend: { position: 'right', labels: { color: '#1a1a1a' } } }
             }
         });
 
@@ -114,12 +114,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { 
-                    legend: { display: true, position: 'bottom', labels: { color: '#f0f0f0' } }, 
-                    title: { display: true, text: '유형별 키워드 분석 (교차 분석)', color: '#f0f0f0', font: {size: 14} } 
+                    legend: { display: true, position: 'bottom', labels: { color: '#1a1a1a' } }, 
+                    title: { display: true, text: '유형별 키워드 분석 (교차 분석)', color: '#1a1a1a', font: {size: 14} } 
                 },
                 scales: {
-                    x: { stacked: true, beginAtZero: true, ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                    y: { stacked: true, ticks: { color: '#a0a0a0' }, grid: { display: false } }
+                    x: { stacked: true, beginAtZero: true, ticks: { color: '#2d3748' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } },
+                    y: { stacked: true, ticks: { color: '#2d3748' }, grid: { display: false } }
                 }
             }
         });
@@ -154,10 +154,10 @@ document.addEventListener('DOMContentLoaded', () => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: '#f0f0f0' } } },
+                plugins: { legend: { labels: { color: '#1a1a1a' } } },
                 scales: {
-                    y: { beginAtZero: true, ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                    x: { ticks: { color: '#a0a0a0' }, grid: { display: false } }
+                    y: { beginAtZero: true, ticks: { color: '#2d3748' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } },
+                    x: { ticks: { color: '#2d3748' }, grid: { display: false } }
                 }
             }
         });
