@@ -123,7 +123,7 @@ col1, col2 = st.columns([1, 1])
 with col1:
     with st.container(border=True):
         st.subheader("💡 내 농지연금 예상 수령액 알아보기")
-        with st.form("pension_form"):
+        if True: # Removed st.form for dynamic dropdowns
             age = st.slider("가입 당시 연령 (세)", 60, 90, 65)
             region = st.selectbox("농지 소재지 (시도)", ["경기", "서울", "경남", "그 외 지역"])
             
@@ -161,7 +161,7 @@ with col1:
                 is_long_term = st.checkbox("30년 이상 장기영농인 (5% 우대)")
 
             payment_type = st.selectbox("연금 지급 방식", ["종신형 (평생 일정 금액 지급)", "기간정액형 (10년/15년 지정 기간 집중 지급)", "전후후박형 (가입 초기 10년간 더 많이 지급)"])
-            submitted = st.form_submit_button("예상 수령액 정밀 계산")
+            submitted = st.button("예상 수령액 정밀 계산", type="primary")
 
     if submitted:
         if not pension_df.empty:
@@ -243,12 +243,13 @@ with col1:
                 type_name = payment_type.split(" ")[0]
                 st.success(f"🎉 **[{type_name}]** 선택 시, 현재 조건의 초기 월 예상 수령액은 약 **{int(estimated):,}원** 입니다.")
                 
-                with st.expander("📊 예상 금액 산출식 단계별 설명 보기"):
+                with st.container(border=True):
+                    st.markdown("### 📊 예상 금액 산출식 단계별 설명")
                     st.markdown("**1단계: 농지 가치 산출**")
                     if is_exact_match:
-                        st.markdown(f"- 입력하신 **{sigungu} {bunji}**의 실제 공시지가(㎡당 **{int(base_price):,}원**)가 적용되었습니다.")
+                        st.markdown(f"- 선택하신 **{sigungu} {bunji}**의 실제 공시지가(㎡당 **{int(base_price):,}원**)가 적용되었습니다.")
                     else:
-                        st.markdown(f"- 입력하신 주소의 인접 평균 공시지가(㎡당 **{int(base_price):,}원**)가 적용되었습니다.")
+                        st.markdown(f"- 선택하신 주소의 인접 평균 공시지가(㎡당 **{int(base_price):,}원**)가 적용되었습니다.")
                     st.markdown(f"- 면적 {area}㎡ × {int(base_price):,}원 = **{int(total_land_value):,}원**")
                     
                     st.markdown("**2단계: 연금 산출 기준액 계산**")
@@ -279,6 +280,24 @@ with col1:
                 else:
                     st.error(f"🔍 예상 농지연금으로 지역 평균 생활비의 **{coverage_rate:.1f}%** 충당이 예상됩니다. '초기 집중 수령형' 등 다른 지급 방식을 고려해보세요. (최저생계형 페르소나)")
                 
+                # 💬 AI 컨설턴트 맞춤 질문 추천 기능
+                st.markdown("---")
+                st.markdown("### 💬 AI 컨설턴트 맞춤 질문 추천")
+                
+                # Make address string clean
+                addr_str = f"{region} {sigungu} {bunji}" if region in ["경기", "서울", "경남"] else f"{region} {sigungu} {bunji}"
+                
+                recommend_msg = f"안녕하세요. {addr_str} 농지 {area}㎡를 소유하고 있는 {age}세 농업인입니다. 예상 월 수령액은 {int(estimated):,}원(생활비 충당률 {coverage_rate:.1f}%)으로 계산되었습니다. 제가 실제로 가입 신청하려면 어떤 절차를 밟아야 하고, 필요한 지참 서류는 무엇인가요?"
+                
+                st.info(recommend_msg)
+                
+                if st.button("💬 이 질문을 AI 컨설턴트에게 바로 전송하기", type="primary"):
+                    st.session_state.chat_history.append({"role": "user", "content": recommend_msg})
+                    with st.spinner("답변을 생성 중입니다..."):
+                        answer = ask_gemini(recommend_msg)
+                    st.session_state.chat_history.append({"role": "assistant", "content": answer})
+                    st.rerun()
+
                 st.markdown("---")
                 st.markdown("#### 📊 타 지역 공시지가 비교")
                 
