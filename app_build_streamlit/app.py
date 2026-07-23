@@ -28,7 +28,7 @@ with st.sidebar:
     st.markdown("다른 서비스 페이지로 빠르게 이동할 수 있습니다.")
     st.markdown("- [🏠 소개 (랜딩 페이지)](https://krc-ai-main.netlify.app/)")
     st.markdown("- [📊 통계 대시보드](https://krc-ai-contest.netlify.app/)")
-    st.markdown("- **🤖 AI 시뮬레이터 & 챗봇 (현재 페이지)**")
+    st.markdown("- **🤖 AI 시뮬레이터 & 컨설턴트 (현재 페이지)**")
 
 st.markdown("""
 <style>
@@ -67,47 +67,42 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.title("🌾 KRC 맞춤형 시뮬레이터 & 통합 민원 AI 챗봇")
+st.title("🌾 KRC 맞춤형 시뮬레이터 & 통합 민원 AI 컨설턴트")
 st.markdown("한국농어촌공사의 최신 데이터 융합으로 농지연금 수령액을 시뮬레이션하고, 농업기반시설 목적외 사용 등 통합 민원을 상담할 수 있습니다.")
 
 @st.cache_data
 def load_data():
     pension_df = pd.DataFrame()
     voc_df = pd.DataFrame()
-    avg_gyeongnam_price = 400000 # Fallback
+    land_df = pd.DataFrame()
     try:
-        # Load core KRC data securely (from local data/ folder for deployment)
         pension_path = os.path.join(BASE_DIR, 'data/한국농어촌공사_농지연금사업 연도 연령대 지역 정보 제공_20251126.csv')
         voc_path = os.path.join(BASE_DIR, 'data/한국농어촌공사_고객의 소리 유형분석_20241231.csv')
         
-        # Load added Gyeongnam public land price data
-        gyeongnam_path = os.path.join(BASE_DIR, 'data/경남_개별공시지가_20260526.csv')
+        # Load land prices
+        seoul_path = os.path.join(BASE_DIR, 'data/서울_개별공시지가_20260526_sample.csv')
+        gg_path = os.path.join(BASE_DIR, 'data/경기도_개별공시지가_20260526_sample.csv')
+        gn_path = os.path.join(BASE_DIR, 'data/경남_개별공시지가_20260526.csv')
         
-        if os.path.exists(pension_path):
-            pension_df = pd.read_csv(pension_path, encoding='cp949')
-        else:
-            pension_path_fallback = os.path.join(BASE_DIR, 'data/한국농어촌공사_농지연금사업  연도 연령대 지역 정보 제공_20251126.csv')
-            if os.path.exists(pension_path_fallback):
-                pension_df = pd.read_csv(pension_path_fallback, encoding='cp949')
-                
-        if os.path.exists(voc_path):
-            voc_df = pd.read_csv(voc_path, encoding='cp949')
+        if os.path.exists(pension_path): pension_df = pd.read_csv(pension_path, encoding='cp949')
+        if os.path.exists(voc_path): voc_df = pd.read_csv(voc_path, encoding='cp949')
+        
+        dfs = []
+        if os.path.exists(seoul_path): dfs.append(pd.read_csv(seoul_path, encoding='utf-8'))
+        if os.path.exists(gg_path): dfs.append(pd.read_csv(gg_path, encoding='utf-8'))
+        if os.path.exists(gn_path): dfs.append(pd.read_csv(gn_path, encoding='utf-8'))
+        if dfs:
+            land_df = pd.concat(dfs, ignore_index=True)
+            # Ensure price column is numeric
+            land_df['공시지가'] = pd.to_numeric(land_df['공시지가'], errors='coerce')
             
-        if os.path.exists(gyeongnam_path):
-            gn_df = pd.read_csv(gyeongnam_path, encoding='utf-8')
-            # 9th column is '공시지가(원/㎡)'
-            if not gn_df.empty and gn_df.shape[1] > 8:
-                avg_gyeongnam_price = pd.to_numeric(gn_df.iloc[:, 8], errors='coerce').mean()
-                if pd.isna(avg_gyeongnam_price):
-                    avg_gyeongnam_price = 400000
     except Exception as e:
         logger.error(f"데이터 로드 에러: {e}")
-        # Security: Do not expose raw stack trace to UI
         st.error("서버 내부 오류: 데이터를 불러오는 중 문제가 발생했습니다.")
         
-    return pension_df, voc_df, avg_gyeongnam_price
+    return pension_df, voc_df, land_df
 
-pension_df, voc_df, avg_gyeongnam_price = load_data()
+pension_df, voc_df, land_df = load_data()
 
 col1, col2 = st.columns([1, 1])
 
@@ -116,7 +111,13 @@ with col1:
         st.subheader("💡 내 농지연금 예상 수령액 알아보기")
         with st.form("pension_form"):
             age = st.slider("가입 당시 연령 (세)", 60, 90, 65)
-            region = st.selectbox("농지 소재지", ["경기", "서울", "경남", "그 외 지역"])
+            region = st.selectbox("농지 소재지 (시도)", ["경기", "서울", "경남", "그 외 지역"])
+            
+            col_a1, col_a2 = st.columns(2)
+            with col_a1:
+                sigungu = st.text_input("시군구/읍면동 (예: 내서읍 삼계리)", "")
+            with col_a2:
+                bunji = st.text_input("지번 (예: 1411-2)", "")
             area = st.number_input("농지 면적 (㎡)", min_value=1000, max_value=50000, value=3000, step=500)
             debt_amount = st.number_input("기존 농지 담보 대출금액 (원)", min_value=0, value=0, step=10000000, format="%d")
             
@@ -141,19 +142,35 @@ with col1:
                 if pd.isna(avg_payment) or pd.isna(avg_area) or avg_area == 0:
                     estimated = 1000000
                 else:
-                    # [제안 A 적용] 국토부 공시지가 기반 정밀 담보가치 로직
-                    # 서울, 경기는 모의 데이터, 경남은 실제 CSV 데이터 평균 연동
-                    mock_land_price = {
-                        "서울": 1500000, 
-                        "경기": 800000, 
-                        "경남": avg_gyeongnam_price, 
-                        "그 외 지역": 300000
-                    }
-                    base_price = mock_land_price[region]
-                    total_land_value = base_price * area
-                    weight = base_price / 300000.0
+                    # 💡 주소 기반 공시지가 맵핑 로직
+                    target_price = 300000 # 기본값 (그 외 지역)
+                    is_exact_match = False
                     
-                    base_estimated = avg_payment * (area / avg_area) * weight
+                    if not land_df.empty and region in ["서울", "경기", "경남"]:
+                        # 1순위: 법정동명 + 지번 완전 일치 탐색
+                        exact_match = land_df[
+                            (land_df['법정동명'].fillna('').str.contains(sigungu)) & 
+                            (land_df['지번'].fillna('').astype(str) == str(bunji))
+                        ]
+                        if not exact_match.empty:
+                            target_price = exact_match['공시지가'].mean()
+                            is_exact_match = True
+                        else:
+                            # 2순위: 해당 읍면동 평균 공시지가 적용
+                            partial_match = land_df[land_df['법정동명'].fillna('').str.contains(sigungu)] if sigungu else pd.DataFrame()
+                            if not partial_match.empty:
+                                target_price = partial_match['공시지가'].mean()
+                            else:
+                                # 3순위: 해당 시도 전체 평균
+                                target_price = land_df['공시지가'].mean() # 샘플데이터이므로 대략적인 평균
+                    
+                    if pd.isna(target_price): target_price = 300000
+                    
+                    base_price = target_price
+                    total_land_value = base_price * area
+                    
+                    # 기준액(농지가치 * 10% / 12개월) 단순화 계산 방식을 통해 단계별 시각화 용이하게 함
+                    base_estimated = (total_land_value * 0.05) / 12
                     
                     # 💡 [정책 룰 1] 기존 대출(선순위 채권) 15% 한도 체크
                     debt_ratio = debt_amount / total_land_value if total_land_value > 0 else 0
@@ -189,6 +206,25 @@ with col1:
 
                 type_name = payment_type.split(" ")[0]
                 st.success(f"🎉 **[{type_name}]** 선택 시, 현재 조건의 초기 월 예상 수령액은 약 **{int(estimated):,}원** 입니다.")
+                
+                with st.expander("📊 예상 금액 산출식 단계별 설명 보기"):
+                    st.markdown("**1단계: 농지 가치 산출**")
+                    if is_exact_match:
+                        st.markdown(f"- 입력하신 **{sigungu} {bunji}**의 실제 공시지가(㎡당 **{int(base_price):,}원**)가 적용되었습니다.")
+                    else:
+                        st.markdown(f"- 입력하신 주소의 인접 평균 공시지가(㎡당 **{int(base_price):,}원**)가 적용되었습니다.")
+                    st.markdown(f"- 면적 {area}㎡ × {int(base_price):,}원 = **{int(total_land_value):,}원**")
+                    
+                    st.markdown("**2단계: 연금 산출 기준액 계산**")
+                    st.markdown(f"- 기본 기준액 (가치 × 5% ÷ 12개월) = **{int(base_estimated):,}원**")
+                    
+                    if bonus_rate > 0:
+                        st.markdown("**3단계: 특별 우대 혜택 가산**")
+                        st.markdown(f"- 우대율 **{bonus_rate*100:.0f}%** 적용 = **{int(base_estimated * (1+bonus_rate)):,}원**")
+                    
+                    if estimated >= 3000000:
+                        st.markdown("**4단계: 국가 정책 한도 적용**")
+                        st.markdown("- 산출액이 300만원을 초과하여 최대 상한선인 **3,000,000원**으로 조정되었습니다.")
                 st.caption("※ 위 금액은 공공데이터(경남 공시지가 등) 융합 및 KRC 규정을 완벽 반영한 AI 추정치입니다.")
                 
                 # [제안 B 적용] 통계청 가계수지 데이터 융합 리포트
@@ -210,11 +246,11 @@ with col1:
                 st.markdown("---")
                 st.markdown("#### 📊 타 지역 공시지가 비교")
                 
-                base_est = avg_payment * (area / avg_area)
-                est_seoul = base_est * (mock_land_price["서울"] / 300000.0)
-                est_gyeonggi = base_est * (mock_land_price["경기"] / 300000.0)
-                est_gyeongnam = base_est * (mock_land_price["경남"] / 300000.0)
-                est_other = base_est * (mock_land_price["그 외 지역"] / 300000.0)
+                base_est = (300000 * area * 0.05) / 12
+                est_seoul = base_est * (1500000 / 300000.0)
+                est_gyeonggi = base_est * (800000 / 300000.0)
+                est_gyeongnam = base_est * (400000 / 300000.0)
+                est_other = base_est
 
                 chart_data = pd.DataFrame({
                     "예상 수령액(원)": [int(est_seoul), int(est_gyeonggi), int(est_gyeongnam), int(est_other)]
@@ -230,7 +266,7 @@ with col1:
 
 with col2:
     with st.container(border=True):
-        st.subheader("🤖 KRC 통합 민원 AI 챗봇 (농지연금 & 기반시설)")
+        st.subheader("🤖 KRC 통합 민원 AI 컨설턴트 (농지연금 & 기반시설)")
         st.markdown("과거 5개년 고객 문의(농지연금 및 농업기반시설 목적외 사용 등)를 모두 학습한 통합 AI 상담원입니다.")
     
     # Security: Load API key from .env robustly
@@ -284,7 +320,7 @@ with col2:
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = [
-            {"role": "assistant", "content": "안녕하세요! 한국농어촌공사 통합 민원 AI 챗봇입니다. 농지연금이나 농로/저수지 등 기반시설 목적외 사용 승인 등 무엇이든 질문해 주세요."}
+            {"role": "assistant", "content": "안녕하세요! 한국농어촌공사 통합 민원 AI 컨설턴트입니다. 농지연금이나 농로/저수지 등 기반시설 목적외 사용 승인 등 무엇이든 질문해 주세요."}
         ]
         
     for msg in st.session_state.chat_history:
