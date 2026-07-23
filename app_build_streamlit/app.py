@@ -108,20 +108,20 @@ with col1:
     with st.container(border=True):
         st.subheader("💡 내 농지연금 예상 수령액 알아보기")
         with st.form("pension_form"):
-        age = st.slider("가입 당시 연령 (세)", 60, 90, 65)
-        region = st.selectbox("농지 소재지", ["경기", "서울", "경남", "그 외 지역"])
-        area = st.number_input("농지 면적 (㎡)", min_value=1000, max_value=50000, value=3000, step=500)
-        debt_amount = st.number_input("기존 농지 담보 대출금액 (원)", min_value=0, value=0, step=10000000, format="%d")
-        
-        st.markdown("##### 🎁 특별 우대 혜택 (해당 시 체크)")
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            is_low_income = st.checkbox("국민기초생활수급자 (10% 우대)")
-        with col_c2:
-            is_long_term = st.checkbox("30년 이상 장기영농인 (5% 우대)")
+            age = st.slider("가입 당시 연령 (세)", 60, 90, 65)
+            region = st.selectbox("농지 소재지", ["경기", "서울", "경남", "그 외 지역"])
+            area = st.number_input("농지 면적 (㎡)", min_value=1000, max_value=50000, value=3000, step=500)
+            debt_amount = st.number_input("기존 농지 담보 대출금액 (원)", min_value=0, value=0, step=10000000, format="%d")
+            
+            st.markdown("##### 🎁 특별 우대 혜택 (해당 시 체크)")
+            col_c1, col_c2 = st.columns(2)
+            with col_c1:
+                is_low_income = st.checkbox("국민기초생활수급자 (10% 우대)")
+            with col_c2:
+                is_long_term = st.checkbox("30년 이상 장기영농인 (5% 우대)")
 
-        payment_type = st.selectbox("연금 지급 방식", ["종신형 (평생 일정 금액 지급)", "기간정액형 (10년/15년 지정 기간 집중 지급)", "전후후박형 (가입 초기 10년간 더 많이 지급)"])
-        submitted = st.form_submit_button("예상 수령액 정밀 계산")
+            payment_type = st.selectbox("연금 지급 방식", ["종신형 (평생 일정 금액 지급)", "기간정액형 (10년/15년 지정 기간 집중 지급)", "전후후박형 (가입 초기 10년간 더 많이 지급)"])
+            submitted = st.form_submit_button("예상 수령액 정밀 계산")
 
     if submitted:
         if not pension_df.empty:
