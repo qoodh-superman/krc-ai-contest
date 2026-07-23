@@ -83,9 +83,37 @@
             font-size: 20px;
             font-weight: 600;
         }
+        .global-nav {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+        }
+        .nav-link {
+            text-decoration: none;
+            color: var(--color-text-secondary);
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: var(--color-primary);
+            color: white;
+        }
     </style>
 </head>
 <body>
+
+    <nav class="global-nav">
+        <a href="#" class="nav-link active">🏠 소개 (랜딩 페이지)</a>
+        <a href="#" onclick="alert('Netlify 정적 대시보드 주소로 코드를 변경해주세요!')" class="nav-link">📊 통계 대시보드</a>
+        <a href="https://krc-ai-simulator.streamlit.app/" target="_blank" class="nav-link">🤖 AI 챗봇 & 시뮬레이터</a>
+    </nav>
 
     <header class="top-header">
         <h1>🌾 KRC 맞춤형 농지연금 AI 시뮬레이터 & 챗봇</h1>

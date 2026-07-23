@@ -23,6 +23,13 @@ logger = logging.getLogger(__name__)
 
 st.set_page_config(page_title="KRC 농지연금 AI 시뮬레이터", page_icon="🌾", layout="wide")
 
+with st.sidebar:
+    st.markdown("### 🌐 전체 서비스 이동 메뉴")
+    st.markdown("다른 서비스 페이지로 빠르게 이동할 수 있습니다.")
+    st.markdown("- [🏠 소개 (랜딩 페이지)](#) *(Netlify 주소 입력 필요)*")
+    st.markdown("- [📊 통계 대시보드](#) *(Netlify 주소 입력 필요)*")
+    st.markdown("- **🤖 AI 시뮬레이터 & 챗봇 (현재 페이지)**")
+
 st.markdown("""
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
