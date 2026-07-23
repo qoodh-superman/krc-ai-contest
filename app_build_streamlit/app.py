@@ -292,7 +292,7 @@ with col2:
             return "API 키가 설정되지 않았습니다. 관리자에게 문의하세요."
             
         genai.configure(api_key=GOOGLE_API_KEY)
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-3.6-flash')
         
         context = "\n".join([f"Q: {qa['제목']}\nA: {qa['내용']}" for qa in qa_list[:5]])
         
