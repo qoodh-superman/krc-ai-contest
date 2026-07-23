@@ -1,0 +1,6 @@
+# Netlify Configuration for Static Dashboard
+# Prevents unnecessary build triggers and saves Netlify build credits.
+
+[build]
+  publish = "."
+  ignore = "git diff --quiet HEAD^ HEAD -- app_build_static/"

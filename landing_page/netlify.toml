@@ -1,0 +1,6 @@
+# Netlify Configuration for Landing Page
+# Prevents unnecessary build triggers and saves Netlify build credits.
+
+[build]
+  publish = "."
+  ignore = "git diff --quiet HEAD^ HEAD -- landing_page/"
