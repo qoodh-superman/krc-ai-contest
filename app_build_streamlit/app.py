@@ -280,22 +280,26 @@ with col1:
                 else:
                     st.error(f"🔍 예상 농지연금으로 지역 평균 생활비의 **{coverage_rate:.1f}%** 충당이 예상됩니다. '초기 집중 수령형' 등 다른 지급 방식을 고려해보세요. (최저생계형 페르소나)")
                 
-                # 💬 AI 컨설턴트 맞춤 질문 추천 기능
+                # 💬 AI 컨설턴트 맞춤 질문 3대 유형 추천 기능
                 st.markdown("---")
-                st.markdown("### 💬 AI 컨설턴트 맞춤 질문 추천")
+                st.markdown("### 💬 AI 컨설턴트 맞춤 질문 추천 (3개 유형)")
+                st.caption("원하는 질문 버튼을 클릭하면 우측 입력창에 자동으로 채워지며, 수정하여 전송할 수 있습니다.")
                 
                 # Make address string clean
                 addr_str = f"{region} {sigungu} {bunji}" if region in ["경기", "서울", "경남"] else f"{region} {sigungu} {bunji}"
                 
-                recommend_msg = f"안녕하세요. {addr_str} 농지 {area}㎡를 소유하고 있는 {age}세 농업인입니다. 예상 월 수령액은 {int(estimated):,}원(생활비 충당률 {coverage_rate:.1f}%)으로 계산되었습니다. 제가 실제로 가입 신청하려면 어떤 절차를 밟아야 하고, 필요한 지참 서류는 무엇인가요?"
+                q1 = f"안녕하세요. {addr_str} 농지 {area}㎡를 소유하고 있는 {age}세 농업인입니다. 예상 월 수령액은 {int(estimated):,}원(생활비 충당률 {coverage_rate:.1f}%)으로 계산되었습니다. 제가 실제로 가입 신청하려면 어떤 절차를 밟아야 하고, 필요한 지참 서류는 무엇인가요?"
+                q2 = f"제 농지({addr_str})의 예상 가치는 {int(total_land_value):,}원인데, 혹시 기존 담보 대출금({debt_amount:,}원)이 있는 상태에서 가입하려면 수령액에서 차감되는 비율이나 가입 승인 제한이 어떻게 되나요?"
+                q3 = f"농지연금에 가입된 제 농지({addr_str}) 위에 공사 관리 농업기반시설(구거 또는 농로)이 지나가고 있습니다. 이 농지연금 계약을 유지하면서 진입로 개설을 위한 목적외 사용 승인 신청이 가능한가요?"
                 
-                st.info(recommend_msg)
-                
-                if st.button("💬 이 질문을 AI 컨설턴트에게 바로 전송하기", type="primary"):
-                    st.session_state.chat_history.append({"role": "user", "content": recommend_msg})
-                    with st.spinner("답변을 생성 중입니다..."):
-                        answer = ask_gemini(recommend_msg)
-                    st.session_state.chat_history.append({"role": "assistant", "content": answer})
+                if st.button("📋 1. 가입 절차 및 필수 서류 문의하기", use_container_width=True):
+                    st.session_state.chat_input_val = q1
+                    st.rerun()
+                if st.button("💰 2. 기존 대출 영향 및 가입 요건 문의하기", use_container_width=True):
+                    st.session_state.chat_input_val = q2
+                    st.rerun()
+                if st.button("🌾 3. 농업기반시설 목적외 사용 가능 여부 문의하기", use_container_width=True):
+                    st.session_state.chat_input_val = q3
                     st.rerun()
 
                 st.markdown("---")
@@ -382,19 +386,41 @@ with col2:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
-    chat_input = st.chat_input("질문을 입력해주세요. (예: 구거에 생활하수 방류가 가능한가요?)")
-    if chat_input:
-        with st.chat_message("user"):
-            st.write(chat_input)
+    if "chat_input_val" not in st.session_state:
+        st.session_state.chat_input_val = ""
+        
+    chat_input = st.text_area("질문을 입력해주세요. (선택한 추천 질문이 여기에 채워집니다.)", value=st.session_state.chat_input_val, height=120)
+    
+    col_send, col_clear = st.columns([1, 1])
+    send_clicked = False
+    clear_clicked = False
+    with col_send:
+        send_clicked = st.button("💬 질문 전송", type="primary", use_container_width=True)
+    with col_clear:
+        clear_clicked = st.button("🗑️ 대화 초기화", use_container_width=True)
+        
+    if clear_clicked:
+        st.session_state.chat_history = [
+            {"role": "assistant", "content": "안녕하세요! 한국농어촌공사 통합 민원 AI 컨설턴트입니다. 농지연금이나 농로/저수지 등 기반시설 목적외 사용 승인 등 무엇이든 질문해 주세요."}
+        ]
+        st.session_state.chat_input_val = ""
+        st.rerun()
+        
+    if send_clicked and chat_input.strip():
+        # Append user message
         st.session_state.chat_history.append({"role": "user", "content": chat_input})
         logger.info(f"[CHAT_IN] 사용자 질문: {chat_input}")
         
-        with st.chat_message("assistant"):
-            with st.spinner("답변을 생성 중입니다..."):
-                answer = ask_gemini(chat_input)
-            st.write(answer)
+        # Clear preset question state
+        st.session_state.chat_input_val = ""
+        
+        # Render response
+        with st.spinner("답변을 생성 중입니다..."):
+            answer = ask_gemini(chat_input)
+            
         st.session_state.chat_history.append({"role": "assistant", "content": answer})
         logger.info(f"[CHAT_OUT] Gemini 답변: {answer}")
+        st.rerun()
 
 st.markdown("""
 <div style="padding:24px 0; margin-top:32px; border-top:1px solid #E2E8E4; font-size:13px; color:#5F6B66; text-align:center;">
