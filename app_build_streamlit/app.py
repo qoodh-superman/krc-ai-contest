@@ -314,6 +314,8 @@ if "q2_msg" not in st.session_state:
 if "q3_msg" not in st.session_state:
     st.session_state.q3_msg = ""
 
+
+
 col1, col2 = st.columns([1, 1])
 
 with col1:
@@ -660,6 +662,96 @@ with col2:
                 fallback_res += "질문과 직접 관련된 판례를 찾지 못했으나, 농지연금 가입 요건(만 60세 이상, 영농경력 5년 이상)을 충족하셔야 가입 약정이 가능합니다."
             return fallback_res
 
+    def ask_gemini_stream(user_question):
+        if not GOOGLE_API_KEY:
+            yield "API 키가 설정되지 않았습니다. 관리자에게 문의하세요."
+            return
+            
+        genai.configure(api_key=GOOGLE_API_KEY)
+        model = genai.GenerativeModel('gemini-3.6-flash')
+        
+        # 1. 법령(legal_rules) 매칭 검사
+        matched_rules = []
+        if legal_rules and "카테고리" in legal_rules:
+            for cat, rules in legal_rules["카테고리"].items():
+                for rule in rules:
+                    keywords = [w for w in rule["항목"].split() if len(w) > 1]
+                    if any(kw in user_question for kw in keywords) or rule["항목"] in user_question:
+                        matched_rules.append(f"- {rule['항목']}: {rule['내용']}")
+        
+        if not matched_rules and legal_rules and "카테고리" in legal_rules:
+            for rule in legal_rules["카테고리"]["농지연금 가입 및 조건"][:2]:
+                matched_rules.append(f"- {rule['항목']}: {rule['내용']}")
+                
+        # 2. 판례(precedents) 매칭 검사
+        matched_precedents = []
+        if precedents:
+            search_words = [w for w in user_question.split() if len(w) > 1]
+            for prec in precedents:
+                score = 0
+                for w in search_words:
+                    if w in prec["제목"]:
+                        score += 5
+                    if w in prec["판시사항"]:
+                        score += 2
+                    if w in prec["참조조문"]:
+                        score += 3
+                if score > 0:
+                    matched_precedents.append((score, prec))
+            
+            matched_precedents.sort(key=lambda x: x[0], reverse=True)
+            matched_precedents = [x[1] for x in matched_precedents[:3]]
+            
+        if not matched_precedents and precedents:
+            matched_precedents = precedents[:2]
+            
+        rules_context = "\n".join(matched_rules)
+        precedents_context = ""
+        for p in matched_precedents:
+            precedents_context += f"법원 판례 [{p['제목']}] (사건번호: {p['사건번호']}, 선고일자: {p['선고일자']})\n"
+            precedents_context += f"- 참조조문: {p['참조조문']} ({p['조문번호']})\n"
+            precedents_context += f"- 판시사항 요지: {p['판시사항'][:500]}...\n\n"
+            
+        context = f"""
+[참조 법령 정보]
+{rules_context}
+
+[관련 법원 판례 지식 베이스]
+{precedents_context}
+"""
+        
+        prompt = f"""
+당신은 한국농어촌공사의 '통합 민원 전문 AI 상담원'입니다. 농지연금 및 농지 관련 행정 절차와 관련 법령(시행령/시행규칙 등) 및 법원 판례를 기반으로 친절하고 전문적으로 답변해 주세요.
+질문자가 입력한 문의사항에 답할 때, 반드시 아래 제공된 [참조 법령 정보] 및 [관련 법원 판례 지식 베이스]를 최대한 참고하여 신뢰성 있고 구체적인 팩트(사건번호 등)가 포함된 답변을 작성하세요.
+
+{context}
+
+사용자 질문: {user_question}
+"""
+        
+        try:
+            response = model.generate_content(prompt, stream=True)
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as e:
+            logger.error(f"[API_STREAM_ERROR] {e}")
+            fallback_res = "💡 **(AI 서버 연결 지연으로 로컬 법률/판례 지식베이스에서 찾은 답변입니다.)**\n\n"
+            if matched_rules:
+                fallback_res += "### 📋 관련 법령 기준 안내\n" + "\n".join(matched_rules) + "\n\n"
+            if matched_precedents:
+                fallback_res += "### ⚖️ 관련 대법원/법원 판례 요약\n"
+                for p in matched_precedents:
+                    fallback_res += f"**- 판례명**: {p['제목']} (사건번호: {p['사건번호']}, 선고일자: {p['선고일자']})\n"
+                    fallback_res += f"**- 판시사항 요지**: {p['판시사항']}\n\n"
+            if not matched_rules and not matched_precedents:
+                fallback_res += "질문과 직접 관련된 판례를 찾지 못했으나, 농지연금 가입 요건(만 60세 이상, 영농경력 5년 이상)을 충족하셔야 가입 약정이 가능합니다."
+            
+            words = fallback_res.split(" ")
+            for word in words:
+                yield word + " "
+                time.sleep(0.02)
+
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = [
             {"role": "assistant", "content": "안녕하세요! 한국농어촌공사 통합 민원 AI 컨설턴트입니다. 농지연금이나 농로/저수지 등 기반시설 목적외 사용 승인 등 무엇이든 질문해 주세요."}
@@ -691,6 +783,62 @@ with col2:
                         </button>
                     </div>
                     """, unsafe_allow_html=True)
+                    
+        # 2. 만약 마지막 메시지가 user의 질문인 경우, assistant의 스트리밍 응답 수행
+        if st.session_state.chat_history and st.session_state.chat_history[-1]["role"] == "user":
+            user_msg = st.session_state.chat_history[-1]["content"]
+            with st.chat_message("assistant"):
+                message_placeholder = st.empty()
+                full_response = ""
+                
+                # MutationObserver 기반의 즉시 자동 스크롤 스크립트 (출력 시 반응 속도 동기화)
+                observer_script = """
+                <script>
+                    (function() {
+                        var targetNode = window.parent.document.querySelector('[data-testid="stChatMessageContainer"]');
+                        if (!targetNode) {
+                            var chatContainers = window.parent.document.querySelectorAll('[data-testid="stChatMessageContainer"]');
+                            if (chatContainers.length > 0) {
+                                targetNode = chatContainers[chatContainers.length - 1];
+                            }
+                        }
+                        
+                        if (targetNode) {
+                            var scrollToBottom = function() {
+                                targetNode.scrollTop = targetNode.scrollHeight;
+                            };
+                            
+                            var config = { attributes: true, childList: true, subtree: true };
+                            var observer = new MutationObserver(function(mutationsList) {
+                                scrollToBottom();
+                            });
+                            
+                            observer.observe(targetNode, config);
+                            scrollToBottom();
+                            
+                            setTimeout(function() {
+                                observer.disconnect();
+                            }, 30000);
+                        }
+                    })();
+                </script>
+                """
+                st.markdown(observer_script, unsafe_allow_html=True)
+                
+                # 텍스트 청크를 받아 한 글자씩 타이핑 효과 출력
+                for chunk in ask_gemini_stream(user_msg):
+                    for char in chunk:
+                        full_response += char
+                        message_placeholder.markdown(full_response + "▌")
+                        time.sleep(0.015)
+                    
+                # 최종 확정
+                message_placeholder.markdown(full_response)
+                
+                # 완성된 답변 저장
+                st.session_state.chat_history.append({"role": "assistant", "content": full_response})
+                logger.info(f"[CHAT_OUT] Gemini 답변(스트리밍 완료): {full_response}")
+                st.rerun()
 
     # --- Render Recommended Questions in col2 right above the chat input box ---
     if st.session_state.calculated and st.session_state.q1_msg:
@@ -737,78 +885,9 @@ with col2:
         
         # Clear preset question state
         st.session_state.chat_input_val = ""
-        
-        # Render response
-        with st.spinner("답변을 생성 중입니다..."):
-            answer = ask_gemini(chat_input)
-            
-        st.session_state.chat_history.append({"role": "assistant", "content": answer})
-        logger.info(f"[CHAT_OUT] Gemini 답변: {answer}")
         st.rerun()
 
-# --- ⚙️ 통합 만족도 관리 센터 (Control Center) ---
-st.markdown("---")
-with st.expander("⚙️ 통합 만족도 관리 센터 (Control Center)", expanded=False):
-    col_ctrl1, col_ctrl2 = st.columns([1, 1])
-    
-    with col_ctrl1:
-        st.markdown("#### 📮 대민 만족도 설문조사")
-        st.markdown("소개, 통계 대시보드, 컨설턴트 서비스에 대한 만족도를 남겨주세요.")
-        
-        # 가중평균 만족도 계산
-        total_votes = 0
-        weighted_sum = 0
-        score_map = {
-            "매우 만족 😊": 5,
-            "만족 🙂": 4,
-            "보통 😐": 3,
-            "불만족 🙁": 2,
-            "매우 불만족 😡": 1
-        }
-        
-        fb_data = stats.get("feedbacks", {})
-        for page_name, votes in fb_data.items():
-            for opt, count in votes.items():
-                total_votes += count
-                weighted_sum += count * score_map.get(opt, 3)
-                
-        avg_score = weighted_sum / total_votes if total_votes > 0 else 0.0
-        
-        col_score1, col_score2 = st.columns(2)
-        with col_score1:
-            st.metric(label="통합 평균 만족도 (5.0 만점)", value=f"{avg_score:.2f} / 5.00")
-        with col_score2:
-            st.metric(label="총 피드백 제출 건수", value=f"{total_votes} 건")
-            
-        with st.form("feedback_form", clear_on_submit=True):
-            target_page = st.selectbox("평가할 서비스 페이지", list(fb_data.keys()))
-            rating_opt = st.radio("만족도 선택", list(score_map.keys()), index=0, horizontal=True)
-            submit_fb = st.form_submit_button("피드백 평가 제출 📮", use_container_width=True)
-            
-            if submit_fb:
-                stats = StatsManager.add_feedback(target_page, rating_opt)
-                st.success(f"[{target_page}] 피드백이 정상 등록되었습니다. 실시간 분석 차트에 반영됩니다!")
-                st.rerun()
-                
-    with col_ctrl2:
-        st.markdown("#### 📊 페이지별 피드백 및 만족도 분석")
-        
-        # 차트 렌더링용 DataFrame 변환
-        chart_rows = []
-        for page_name, votes in fb_data.items():
-            row = {"서비스 페이지": page_name}
-            row.update(votes)
-            chart_rows.append(row)
-            
-        if chart_rows:
-            chart_df = pd.DataFrame(chart_rows).set_index("서비스 페이지")
-            st.bar_chart(chart_df)
-            
-            # 웹 접근성 보장용 데이터 표 병렬 표기 (KWCAG 2.2)
-            with st.expander("📝 상세 피드백 테이블 보기 (접근성용 데이터 표)"):
-                st.dataframe(chart_df, use_container_width=True)
-        else:
-            st.info("수집된 피드백 데이터가 없습니다.")
+
 
 st.markdown("""
 <div style="padding:24px 0; margin-top:32px; border-top:1px solid #E2E8E4; font-size:13px; color:#5F6B66; text-align:center;">
