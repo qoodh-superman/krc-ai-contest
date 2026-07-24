@@ -364,7 +364,75 @@
                 </div>
             </div>
         </section>
-        
+
+        <!-- Section 4.5: Legal Precedent Analysis (NEW) -->
+        <section class="content-section card fade-in-up" style="animation-delay: 0.45s; margin-top: 2rem;">
+            <div class="section-header">
+                <div class="icon-box">⚖️</div>
+                <h2>대법원 농지 법률 판례 텍스트 마이닝 인사이트</h2>
+            </div>
+            <p style="color: var(--color-text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem;">
+                법원판례(농지연금 및 농지 관련 분쟁 640건)의 제목과 판시사항을 자연어 처리(NLP) 기법으로 텍스트 마이닝하여 도출한 주요 소송 분쟁 유형 분포 및 핵심 리스크 예방 가이드입니다.
+            </p>
+            
+            <div class="dashboard-grid">
+                <!-- Precedent Chart Card -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>농지 관련 주요 사법 분쟁 유형 분포 (정량 분석)</h3>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="precedentChart"></canvas>
+                    </div>
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(31, 111, 84, 0.05); border-left: 3px solid var(--color-primary); border-radius: 4px;">
+                        <h4 style="color: var(--color-primary); font-size: 0.95rem; margin-bottom: 0.5rem;">💡 사법 판결 데이터가 시사하는 점</h4>
+                        <p style="color: var(--color-text-secondary); font-size: 0.85rem; line-height: 1.6;">
+                            가장 빈번한 농지 분쟁은 <strong>자경(직접 경작) 요건 미달에 따른 농지처분의무(35.3%)</strong>와 <strong>양도소득세 감면 부적격(27.3%)</strong> 분쟁입니다. 고령 농업인들이 농지연금 가입이나 양도 시 실제 농사를 짓지 않았음에도 세금 혜택을 청구하거나 소유권을 유지하려다 소송으로 이어지는 경우가 과반을 차지합니다.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Legal Prevention Guidelines Card -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>🔑 판례 기반 3대 농지 법률 분쟁 예방 가이드</h3>
+                    </div>
+                    <div class="guidelines-container" style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+                        <!-- Guide 1 -->
+                        <div style="padding: 1rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px;">
+                            <h4 style="color: var(--color-primary); font-size: 0.9rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 6px;">
+                                <span style="background: rgba(46, 204, 113, 0.15); color: #27ae60; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">예방 1</span>
+                                상속·자경 요건 입증 (농지처분의무 회피)
+                            </h4>
+                            <p style="color: var(--color-text-secondary); font-size: 0.8rem; line-height: 1.5; margin: 0;">
+                                농지를 소유만 하고 실제로 경작(자경)하지 않을 경우 농지법상 <strong>처분의무</strong>가 부과됩니다. 상속농지라 하더라도 1만㎡를 초과하거나 영농에 종사하지 않으면 처분 대상이 되므로, 비농업인 상속인은 한국농어촌공사의 <strong>농지은행 임대수탁 사업</strong>을 통해 위탁 경작 계약을 맺어야 처분 명령을 합법적으로 예방할 수 있습니다.
+                            </p>
+                        </div>
+                        <!-- Guide 2 -->
+                        <div style="padding: 1rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px;">
+                            <h4 style="color: var(--color-primary); font-size: 0.9rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 6px;">
+                                <span style="background: rgba(52, 152, 219, 0.15); color: #2980b9; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">예방 2</span>
+                                8년 자경 양도세 감면 적격성 확인
+                            </h4>
+                            <p style="color: var(--color-text-secondary); font-size: 0.8rem; line-height: 1.5; margin: 0;">
+                                농지 양도소득세 감면(8년 자경)을 받으려면 소유주가 농지 소재지에 거주하며 <strong>농작업의 1/2 이상을 자기 노동력으로 경작</strong>했음을 입증해야 합니다. 법원은 단순히 농지원부(현 농업경영체 등록) 등재 여부만으로 자경을 인정하지 않으며, 실제 <strong>비료/농약 구입 영수증, 농산물 판매 실적, 인근 주민의 경작 사실확인서</strong> 등 객관적인 입증 서류를 철저히 갖춰 두어야 과세 취소 소송을 예방할 수 있습니다.
+                            </p>
+                        </div>
+                        <!-- Guide 3 -->
+                        <div style="padding: 1rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px;">
+                            <h4 style="color: var(--color-primary); font-size: 0.9rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 6px;">
+                                <span style="background: rgba(241, 196, 15, 0.15); color: #d35400; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">예방 3</span>
+                                농지보전부담금 부과 기준(5년 규정) 준수
+                            </h4>
+                            <p style="color: var(--color-text-secondary); font-size: 0.8rem; line-height: 1.5; margin: 0;">
+                                농지전용허가를 받아 시설물을 준공한 후 <strong>5년 이내</strong>에 다른 목적으로 전용목적을 변경할 경우 농지보전부담금을 추가 납부해야 합니다. 부담금 취소 소송의 최신 대법원 판례(2024두38575)에 따라 준공검사 및 건축물대장 등재 후 <strong>5년이 도과한 후 목적외로 변경하는 경우에는 추가 부담금 납부 의무가 면제</strong>되므로, 용도 변경 시점을 신중히 계산해야 행정 리스크를 피할 수 있습니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Section 5: Project ROI Analysis (NEW) -->
         <section class="content-section card fade-in-up" style="animation-delay: 0.5s; margin-top: 2rem;">
             <div class="section-header">

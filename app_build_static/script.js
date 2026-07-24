@@ -191,6 +191,44 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // 6. Render Precedent Chart (Horizontal Bar Chart)
+        const precedentCtx = document.getElementById('precedentChart').getContext('2d');
+        const precData = data.precedents_keywords;
+        
+        new Chart(precedentCtx, {
+            type: 'bar',
+            data: {
+                labels: precData.labels,
+                datasets: [{
+                    label: '판례 건수 (건)',
+                    data: precData.counts,
+                    backgroundColor: [
+                        'rgba(231, 76, 60, 0.7)',  // 농지처분의무 및 자경
+                        'rgba(241, 196, 15, 0.7)', // 양도소득세 및 세금
+                        'rgba(52, 152, 219, 0.7)',  // 농지보전부담금
+                        'rgba(155, 89, 182, 0.7)', // 농지법 위반 및 불법 전용
+                        'rgba(46, 204, 113, 0.7)',  // 기반시설 목적외사용
+                        'rgba(149, 165, 166, 0.7)'  // 기타 분쟁
+                    ],
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { beginAtZero: true, ticks: { color: '#2d3748' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } },
+                    y: { ticks: { color: '#2d3748' }, grid: { display: false } }
+                }
+            }
+        });
+
     } catch (error) {
         console.error('Error loading static data:', error);
     }
