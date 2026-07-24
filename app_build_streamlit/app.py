@@ -306,6 +306,46 @@ def load_data():
 
 pension_df, voc_df, land_df, precedents, legal_rules = load_data()
 
+# --- 🔗 HTML/CSS 인라인 결합 빌더 (Pixel-Perfect 복원) ---
+def get_embedded_dashboard_html():
+    static_dir = os.path.join(BASE_DIR, 'app_build_static')
+    html_path = os.path.join(static_dir, 'index.html')
+    css_path = os.path.join(static_dir, 'style.css')
+    script_path = os.path.join(static_dir, 'script.js')
+    data_path = os.path.join(static_dir, 'data/results.js')
+    
+    try:
+        with open(html_path, 'r', encoding='utf-8') as f:
+            html = f.read()
+        with open(css_path, 'r', encoding='utf-8') as f:
+            css = f.read()
+        with open(script_path, 'r', encoding='utf-8') as f:
+            js = f.read()
+        with open(data_path, 'r', encoding='utf-8') as f:
+            data_js = f.read()
+            
+        # 외형 CSS 스타일 인라인 이식
+        html = html.replace('<link rel="stylesheet" href="style.css">', f'<style>{css}</style>')
+        
+        # JS 비즈니스 데이터 및 Chart.js 구동 코드 인라인 병합
+        html = html.replace('<script src="data/results.js"></script>', f'<script>{data_js}</script>')
+        html = html.replace('<script src="script.js"></script>', f'<script>{js}</script>')
+    except Exception as e:
+        logger.error(f"Error embedding static dashboard: {e}")
+        html = "<h3>대시보드 데이터를 로드하는 중 오류가 발생했습니다.</h3>"
+    return html
+
+def get_embedded_landing_html():
+    landing_dir = os.path.join(BASE_DIR, 'landing_page')
+    html_path = os.path.join(landing_dir, 'index.html')
+    
+    try:
+        with open(html_path, 'r', encoding='utf-8') as f:
+            html = f.read()
+    except Exception as e:
+        logger.error(f"Error embedding landing page: {e}")
+        html = "<h3>소개 페이지 데이터를 로드하는 중 오류가 발생했습니다.</h3>"
+    return html
 
 # Initialize states
 if "calculated" not in st.session_state:
@@ -319,112 +359,14 @@ if "q3_msg" not in st.session_state:
 
 # --- 🏠 프로젝트 소개 페이지 렌더링 ---
 if menu == "🏠 프로젝트 소개":
-    st.markdown("""
-    <h1 style='color: #124A38; font-size: 32px;'>🌾 KRC 맞춤형 농지연금 AI 시뮬레이터 & 컨설턴트</h1>
-    <p style='color: #5F6B66; font-size: 16px;'>어려운 농지연금과 행정 규제 리스크, 이제 AI와 함께 쉽고 빠르게 설계하세요.</p>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    st.markdown("### 🎯 프로젝트 개요")
-    st.markdown("""
-    본 프로젝트는 한국농어촌공사(KRC) 농업인들을 위한 **데이터 융합형 디지털 혁신 플랫폼**입니다.  
-    기존의 단순 가액 계산에서 탈피하여 **국토교통부(공시지가)**, **통계청(가계수지동향)**, **대법원(판례 정량 분석)** 공공데이터를 유기적으로 연동·융합하였습니다.  
-    이를 통해 은퇴 고령 농가의 노후 생활비 결손을 실질적으로 해결하는 자산 설계와, 사법 리스크 및 악성 반복 민원(VOC)을 선제 예방하는 통합 민원 대응 창구를 제공합니다.
-    """)
-    
-    col_feat1, col_feat2 = st.columns(2)
-    with col_feat1:
-        st.info("""
-        ### 💡 AI 시뮬레이터 (자산 정밀 매칭)
-        * **지가 기반 편차 가중치 연산**: 필지별 실제 개별공시지가 데이터를 반영한 현실적 담보 가치 산정.
-        * **생활비 충당률 매칭**: 통계청 고령 가구 가계수지와 연계한 '노후 생활비 자립도(%)' 보고서 생성.
-        * **K-Means 페르소나 추천**: 가구 소득 수준에 맞춘 3대 노후 라이프스타일 페르소나별 최적의 지급 방식 추천.
-        """)
-        
-    with col_feat2:
-        st.success("""
-        ### 🤖 지능형 컨설턴트 (법률 예방 및 민원 대응)
-        * **5개년 VOC 학습 RAG**: 민원의 70%를 차지하는 '기반시설 목적외사용/사용료' 및 '농지보전부담금' 상담 자동화.
-        * **대법원 판례 텍스트 마이닝**: 640건 대법원 판례 통계 데이터를 주입해 최다 사법 리스크인 **'자경 요건(35.3%)'** 및 **'양도소득세(27.3%)'** 소송 위험 사전 상담.
-        * **실시간 타이핑 스크롤**: AI 답변 생성 속도와 1:1 싱크를 맞춘 부드러운 자동 스크롤(MutationObserver) 탑재.
-        """)
-        
-    st.markdown("---")
-    st.markdown("#### 🧭 서비스 시작하기")
-    st.info("👈 왼쪽 사이드바 상단의 **'서비스 페이지 이동'** 메뉴를 사용해 **[📊 통계 대시보드]** 또는 **[🤖 AI 시뮬레이터 & 컨설턴트]**로 편리하게 이동하실 수 있습니다.")
+    html_content = get_embedded_landing_html()
+    st.components.v1.html(html_content, height=800, scrolling=True)
     st.stop()
 
 # --- 📊 통계 대시보드 렌더링 ---
 elif menu == "📊 통계 대시보드":
-    st.markdown("""
-    <h1 style='color: #124A38; font-size: 32px;'>📊 데이터 융합 분석 결과 대시보드</h1>
-    <p style='color: #5F6B66; font-size: 16px;'>KRC 내부 실적 데이터와 다각도 외부 공공데이터(지가, 가계수지, 사법 판례)를 융합 분석한 시각화 리포트입니다.</p>
-    """, unsafe_allow_html=True)
-    st.markdown("---")
-    
-    st.subheader("📍 1. 지역별 평균 농지연금 월지급금 (KRC 실적)")
-    region_data = pd.DataFrame({
-        "평균 월지급금 (천원)": [1745.0, 2085.0, 1604.0, 1594.0, 1489.0, 1657.0, 1910.0, 1631.0, 1663.0]
-    }, index=["강원", "경기", "경남", "경북", "전남", "전북", "제주", "충남", "충북"])
-    st.bar_chart(region_data)
-    st.markdown("<p style='font-size: 13px; color: #5F6B66;'>💡 <b>인사이트</b>: 서울/경기 등 공시지가가 높은 수도권 지역이 비수도권 대비 ㎡당 담보 가치가 높아 더 높은 평균 연금을 수령하며, 이는 지역별 편차 가중치 연산의 당위성을 제공합니다.</p>", unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    col_c1, col_c2 = st.columns(2)
-    with col_c1:
-        st.subheader("📍 2. 시도별 누적 가입 건수")
-        sido_counts = pd.DataFrame({
-            "누적 가입건수 (건)": [2694, 2435, 1762, 1586, 1507, 1438, 798, 719, 274]
-        }, index=["경기", "경북", "경남", "충남", "전북", "전남", "충북", "강원", "제주"])
-        st.bar_chart(sido_counts)
-    with col_c2:
-        st.subheader("📈 3. 연도별 가입건수 시계열 추이 & 예측")
-        ts_data = pd.DataFrame({
-            "실제 가입건수": [2606, 2080, 2530, 2882, 3115, None, None, None],
-            "예측 가입건수 (시계열 모델)": [None, None, None, None, 3115, 3450, 3780, 4120]
-        }, index=["2020", "2021", "2022", "2023", "2024", "2025(예)", "2026(예)", "2027(예)"])
-        st.line_chart(ts_data)
-        
-    st.markdown("---")
-    
-    col_v1, col_v2 = st.columns(2)
-    with col_v1:
-        st.subheader("📍 4. 통계청 고령가구 월평균 가계수지")
-        budget_df = pd.DataFrame({
-            "월평균 소비지출": ["약 287만 원", "약 270만 원"],
-            "월평균 공적이전소득": ["약 118만 원", "약 146만 원"],
-            "생활비 부족분 (적자)": ["약 -169만 원", "약 -124만 원"]
-        }, index=["근로자 가구", "근로자외 가구"])
-        st.table(budget_df)
-        st.info("💡 **인사이트**: 고령 은퇴 가구의 매월 평균 약 124만~169만 원 소득 공백(생활비 적자)을 농지연금이 대체함으로써 충당 가능한 생활비 충당률(%) 지표를 자산 설계에 연계했습니다.")
-    with col_v2:
-        st.subheader("📍 5. KRC 민원(VOC) 유형 분포")
-        voc_summary = pd.DataFrame({
-            "민원 건수 (건)": [2526, 3136, 430, 39]
-        }, index=["질의", "요청", "불만", "칭찬"])
-        st.bar_chart(voc_summary)
-        st.info("💡 **인사이트**: 분석 결과 민원의 70%가 '기반시설 목적외사용/사용료'에 집중되어 있어 단순 반복 민원 자동화 RAG DB를 해당 테마로 우선 구축했습니다.")
-        
-    st.markdown("---")
-    
-    st.subheader("⚖️ 6. 대법원 농지 법률 판례 텍스트 마이닝 분석")
-    col_p1, col_p2 = st.columns([1, 1.2])
-    with col_p1:
-        prec_counts = pd.DataFrame({
-            "판례 건수 (건)": [226, 175, 78, 62, 3, 238]
-        }, index=["농지처분의무 및 자경", "양도소득세 및 세금", "농지보전부담금", "농지법 위반 및 불법 전용", "기반시설 목적외사용", "기타 분쟁"])
-        st.bar_chart(prec_counts)
-    with col_p2:
-        st.markdown("**🔑 판례 기반 3대 농지 법률 분쟁 예방 가이드**")
-        st.markdown("""
-        * **자경(경작) 요건 입증 및 처분의무 회피 (35.3%)**  
-          실제 농사짓지 않는 상속농지 등은 처분의무가 부과됩니다. 처분을 면하려면 한국농어촌공사 **농지은행 임대수탁 사업**에 위탁 계약을 맺어야 안전합니다.
-        * **8년 자경 양도세 감면 적격 증빙 (27.3%)**  
-          서류 외에도 **비료/농약 영수증, 농산물 대금 입금내역, 경작 확인서** 등 실질적인 농사 증빙 자료를 상시 구축해 두어야 양도세 세금 추징 소송을 예방합니다.
-        * **농지보전부담금 용도변경 5년 제약 (12.2%)**  
-          최신 판례(2024두38575)에 근거하여, 준공일로부터 **5년이 지난 시점**에 다른 용도로 변경 신청을 할 경우 추가적인 부담금 납부 의무가 면제됩니다.
-        """)
+    html_content = get_embedded_dashboard_html()
+    st.components.v1.html(html_content, height=1950, scrolling=True)
     st.stop()
 
 # --- 🤖 AI 시뮬레이터 & 컨설턴트 서비스 전용 타이틀 복구 ---
