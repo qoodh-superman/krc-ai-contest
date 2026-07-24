@@ -311,7 +311,8 @@ pension_df, voc_df, land_df, precedents, legal_rules = load_data()
 
 # --- 🔗 HTML/CSS 인라인 결합 빌더 (Pixel-Perfect 복원) ---
 def get_embedded_dashboard_html():
-    static_dir = os.path.join(BASE_DIR, 'app_build_static')
+    parent_dir = os.path.dirname(BASE_DIR)
+    static_dir = os.path.join(parent_dir, 'app_build_static')
     html_path = os.path.join(static_dir, 'index.html')
     css_path = os.path.join(static_dir, 'style.css')
     script_path = os.path.join(static_dir, 'script.js')
@@ -335,11 +336,12 @@ def get_embedded_dashboard_html():
         html = html.replace('<script src="script.js"></script>', f'<script>{js}</script>')
     except Exception as e:
         logger.error(f"Error embedding static dashboard: {e}")
-        html = "<h3>대시보드 데이터를 로드하는 중 오류가 발생했습니다.</h3>"
+        html = f"<h3>대시보드 데이터를 로드하는 중 오류가 발생했습니다. ({e})</h3>"
     return html
 
 def get_embedded_landing_html():
-    landing_dir = os.path.join(BASE_DIR, 'landing_page')
+    parent_dir = os.path.dirname(BASE_DIR)
+    landing_dir = os.path.join(parent_dir, 'landing_page')
     html_path = os.path.join(landing_dir, 'index.html')
     
     try:
@@ -347,7 +349,7 @@ def get_embedded_landing_html():
             html = f.read()
     except Exception as e:
         logger.error(f"Error embedding landing page: {e}")
-        html = "<h3>소개 페이지 데이터를 로드하는 중 오류가 발생했습니다.</h3>"
+        html = f"<h3>소개 페이지 데이터를 로드하는 중 오류가 발생했습니다. ({e})</h3>"
     return html
 
 # Initialize states
