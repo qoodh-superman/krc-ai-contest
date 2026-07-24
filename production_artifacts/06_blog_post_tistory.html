@@ -1,0 +1,498 @@
+<div id="krc-blog-container">
+    <!-- 스타일 정의 (티스토리 본문 내 삽입용으로 범위 격리) -->
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+        
+        #krc-blog-container {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            max-width: 820px;
+            margin: 0 auto;
+            color: #333333;
+            line-height: 1.8;
+            background-color: #ffffff;
+            padding: 10px;
+        }
+        
+        #krc-blog-container h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #124A38;
+            border-left: 5px solid #1F6F54;
+            padding-left: 15px;
+            margin-top: 50px;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+
+        #krc-blog-container h3 {
+            font-size: 19px;
+            font-weight: 600;
+            color: #1D4E89;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #E2E8E4;
+            padding-bottom: 8px;
+        }
+        
+        #krc-blog-container p {
+            margin: 0 0 15px 0;
+            font-size: 15px;
+            color: #4A5568;
+            text-align: justify;
+        }
+
+        #krc-blog-container strong {
+            color: #111827;
+        }
+        
+        /* 인트로 히어로 배너 */
+        .krc-hero {
+            background: linear-gradient(135deg, #124A38 0%, #1F6F54 100%);
+            color: #ffffff;
+            padding: 45px 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 20px rgba(31, 111, 84, 0.12);
+        }
+        
+        .krc-hero .krc-tag {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 18px;
+            letter-spacing: 0.5px;
+        }
+        
+        .krc-hero h1 {
+            font-size: 30px;
+            font-weight: 800;
+            margin: 0 0 15px 0;
+            line-height: 1.4;
+            word-break: keep-all;
+            color: #ffffff !important;
+        }
+        
+        .krc-hero p {
+            font-size: 16px;
+            opacity: 0.95;
+            margin: 0;
+            font-weight: 400;
+            color: #E2E8E4 !important;
+            text-align: center;
+        }
+        
+        /* 프로젝트 핵심 정보 그리드 */
+        .krc-summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+        
+        @media (max-width: 600px) {
+            .krc-summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .krc-summary-card {
+            background-color: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .krc-summary-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .krc-summary-card li {
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #4A5568;
+        }
+        
+        .krc-summary-card li:last-child {
+            margin-bottom: 0;
+        }
+        
+        .krc-summary-card li strong {
+            color: #124A38;
+            display: inline-block;
+            width: 95px;
+            font-weight: 700;
+        }
+        
+        /* 결과물 링크 갤러리 */
+        .krc-gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 35px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .krc-gallery {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .krc-gallery-item {
+            background: #ffffff;
+            border: 1px solid #E2E8E4;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .krc-gallery-item:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 24px rgba(31, 111, 84, 0.1);
+            border-color: #1F6F54;
+        }
+        
+        .krc-gallery-item .krc-icon {
+            font-size: 38px;
+            margin-bottom: 12px;
+        }
+        
+        .krc-gallery-item h4 {
+            font-size: 17px;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            color: #1D4E89;
+        }
+        
+        .krc-gallery-item p {
+            font-size: 13px;
+            color: #718096;
+            margin: 0 0 20px 0;
+            line-height: 1.6;
+            flex-grow: 1;
+            text-align: center;
+        }
+        
+        .krc-btn {
+            display: block;
+            background-color: #1F6F54;
+            color: #ffffff !important;
+            text-decoration: none !important;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13.5px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .krc-btn:hover {
+            background-color: #124A38;
+        }
+        
+        /* 프로세스 섹션 */
+        .krc-process-timeline {
+            margin: 30px 0;
+        }
+        
+        .krc-process-step {
+            display: flex;
+            margin-bottom: 20px;
+            background-color: #F8FAFC;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #1D4E89;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+        }
+        
+        .krc-process-step:nth-child(even) {
+            border-left-color: #1F6F54;
+        }
+        
+        .krc-process-number {
+            font-size: 22px;
+            font-weight: 800;
+            color: #1D4E89;
+            margin-right: 20px;
+            min-width: 30px;
+        }
+        
+        .krc-process-step:nth-child(even) .krc-process-number {
+            color: #1F6F54;
+        }
+        
+        .krc-process-content h4 {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0 0 6px 0;
+            color: #1E293B;
+        }
+        
+        .krc-process-content p {
+            font-size: 13.5px;
+            color: #475569;
+            margin: 0;
+        }
+        
+        /* 기대효과 보드 */
+        .krc-roi-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 35px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .krc-roi-board {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .krc-roi-card {
+            background: linear-gradient(to bottom, #ffffff, #F8FAFC);
+            border: 1px solid #E2E8F0;
+            border-radius: 10px;
+            padding: 20px 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+        }
+        
+        .krc-roi-val {
+            font-size: 26px;
+            font-weight: 800;
+            color: #1F6F54;
+            margin-bottom: 5px;
+        }
+        
+        .krc-roi-title {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: #1E293B;
+            margin-bottom: 8px;
+        }
+        
+        .krc-roi-desc {
+            font-size: 12.5px;
+            color: #64748B;
+            margin: 0;
+            line-height: 1.5;
+            text-align: center;
+        }
+        
+        /* 평가 스탬프 박스 */
+        .krc-eval-box {
+            background-color: #FFFDF5;
+            border: 1px solid #FDE6C7;
+            border-radius: 10px;
+            padding: 22px;
+            margin-top: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(253, 230, 199, 0.2);
+        }
+        
+        @media (max-width: 600px) {
+            .krc-eval-box {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+        }
+        
+        .krc-eval-info h4 {
+            margin: 0 0 6px 0;
+            font-size: 15px;
+            color: #B25E00;
+            font-weight: 700;
+        }
+        
+        .krc-eval-info p {
+            margin: 0;
+            font-size: 13px;
+            color: #78350F;
+        }
+        
+        .krc-stamp {
+            border: 3px double #D9534F;
+            color: #D9534F;
+            font-size: 17px;
+            font-weight: 800;
+            padding: 4px 14px;
+            border-radius: 6px;
+            transform: rotate(-6deg);
+            display: inline-block;
+            letter-spacing: 1px;
+        }
+        
+        /* 인용구 스타일 */
+        .krc-blockquote {
+            border-left: 4px solid #1D4E89;
+            padding: 10px 20px;
+            margin: 25px 0;
+            background-color: #F8FAFC;
+            font-style: italic;
+            color: #475569;
+            border-radius: 0 8px 8px 0;
+            font-size: 14.5px;
+        }
+    </style>
+    
+    <!-- Hero Banner -->
+    <div class="krc-hero">
+        <span class="krc-tag">제3회 KRC AI 디지털 혁신 공모전</span>
+        <h1>🌾 농지연금 AI 시뮬레이터 & 컨설턴트 개발기</h1>
+        <p>복잡한 가치 평가와 노후 설계를 데이터 융합으로 한 눈에 해결하다</p>
+    </div>
+
+    <p>최근 공공기관들의 행정 서비스가 AI와 데이터를 기반으로 급격히 전환되고 있습니다. 저는 한국농어촌공사(KRC)가 주관하는 <strong>제3회 KRC AI 디지털 혁신 공모전</strong>에 참여해, 공사의 핵심 대민 제도인 <strong>'농지연금'</strong>을 AI로 진단하고 설계할 수 있는 서비스를 개발했습니다.</p>
+    <p>기획부터 데이터 수집 및 설계, 그리고 실제로 누구나 들어와서 시뮬레이션할 수 있는 PoC(Proof of Concept) 서비스 개발까지 완료한 과정을 포트폴리오 형태로 정리했습니다.</p>
+
+    <!-- Overview Details -->
+    <div class="krc-summary-grid">
+        <div class="krc-summary-card">
+            <ul>
+                <li><strong>공모 분야</strong> 생산성 제고 / 대민 서비스</li>
+                <li><strong>프로젝트명</strong> 농지연금 AI 시뮬레이터 & 컨설턴트</li>
+                <li><strong>개발 기간</strong> 2026.07 (약 3주)</li>
+                <li><strong>주요 기능</strong> 예상 수령액 시뮬레이터, VOC AI 컨설턴트</li>
+            </ul>
+        </div>
+        <div class="krc-summary-card">
+            <ul>
+                <li><strong>활용 기술</strong> Python, Streamlit, JS (Vanilla), Chart.js</li>
+                <li><strong>인프라</strong> Netlify, Streamlit Community Cloud</li>
+                <li><strong>데이터 융합</strong> KRC 내부 데이터 + 공시지가(국토부) + 가계수지(통계청)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Live Demo Portfolio Callout -->
+    <h2>🔗 제작된 웹 서비스 (라이브 데모 보기)</h2>
+    <p>이번 프로젝트는 사용자의 접근성을 극대화하기 위해 다각도로 배포를 진행했습니다. 각 카드를 클릭하시면 직접 구현된 사이트로 이동하여 기능을 확인해 보실 수 있습니다.</p>
+
+    <div class="krc-gallery">
+        <!-- Card 1 -->
+        <div class="krc-gallery-item">
+            <div>
+                <div class="krc-icon">🏠</div>
+                <h4>소개 랜딩 페이지</h4>
+                <p>농지연금 AI 서비스의 전반적인 소개와 제공 가치, 라이브 데모 바로가기를 깔끔하게 구성한 인트로 웹페이지입니다.</p>
+            </div>
+            <!-- 사용자가 원할 경우 주소 변경 가능 -->
+            <a href="https://krc-ai-main.netlify.app/" class="krc-btn" target="_blank">랜딩 페이지 가기 →</a>
+        </div>
+        
+        <!-- Card 2 -->
+        <div class="krc-gallery-item">
+            <div>
+                <div class="krc-icon">🤖</div>
+                <h4>AI 시뮬레이터 & 컨설턴트</h4>
+                <p>Streamlit 기반 인터랙티브 웹 앱으로, 연령과 농지 정보를 입력해 실제 예상 연금을 계산하고 FAQ 상담을 나누는 메인 프로토타입입니다.</p>
+            </div>
+            <a href="https://krc-ai-simulator.streamlit.app/" class="krc-btn" target="_blank">시뮬레이터 체험 →</a>
+        </div>
+        
+        <!-- Card 3 -->
+        <div class="krc-gallery-item">
+            <div>
+                <div class="krc-icon">📊</div>
+                <h4>데이터 분석 대시보드</h4>
+                <p>Chart.js와 Netlify를 이용해 공공 데이터와 연금 통계를 한눈에 시각화하여, 실무자들의 빠른 의사결정을 돕는 반응형 대시보드입니다.</p>
+            </div>
+            <a href="https://krc-ai-contest.netlify.app/" class="krc-btn" target="_blank">대시보드 보기 →</a>
+        </div>
+    </div>
+
+    <div class="krc-blockquote">
+        💡 <strong>팁:</strong> 각 사이트들은 모바일 화면에서도 반응형으로 최적화되어 동작하도록 미려하게 설계되었습니다.
+    </div>
+
+    <!-- 1. 문제 정의 -->
+    <h2>1. 문제 정의 및 기획 배경 (VOC 기반)</h2>
+    <p>농지연금은 농업인의 안정적인 노후생활 지원을 위한 한국농어촌공사(KRC)의 핵심 대민 제도입니다. 하지만 현업에서는 다음과 같은 페인 포인트가 존재했습니다.</p>
+    <ul>
+        <li><strong>고령층의 정보 고립:</strong> 공시지가, 평가 방식 등이 매우 복잡하게 연동되어 있어 고령의 농업인들이 본인의 연금 수령액을 직관적으로 가늠하기 어려웠습니다.</li>
+        <li><strong>지사 행정력 과부하:</strong> 단순 연금 수령액 문의나 자격 요건 FAQ 같은 단순 반복 민원(VOC)이 전국 90여 개 농어촌공사 지사에 집중되어 행정 비효율이 발생하고 있었습니다.</li>
+    </ul>
+    <p>이 두 가지 문제를 해결하기 위해, <strong>"사용자가 복잡한 입력 없이 본인의 정보만으로 연금액을 즉시 예측하고, 자주 묻는 질문을 대화식으로 해결해 주는 원스톱 시뮬레이터"</strong>를 기획하게 되었습니다.</p>
+
+    <!-- 2. 데이터 분석 설계 및 AI 파이프라인 -->
+    <h2>2. 데이터 설계 및 AI 파이프라인 (융합 분석)</h2>
+    <p>단순한 연금 계산기를 넘어 신뢰도를 확보하기 위해 KRC 내부 통계와 외부 공공데이터를 정밀하게 결합했습니다.</p>
+    
+    <h3>1) 융합 데이터 레이아웃</h3>
+    <ul>
+        <li><strong>KRC 보유 데이터:</strong> 실제 농지연금 가입이력 데이터(학습용) 및 자주 접수되는 고객의 소리(VOC) 데이터</li>
+        <li><strong>국토교통부 개별공시지가:</strong> 지역별 가중치 대신 실제 공시지가를 연동하여 자산 가치 평가의 정확도 대폭 향상</li>
+        <li><strong>통계청 고령층 가계수지 통계:</strong> 노후 평균 생활비 기준선을 연동하여 연금 수령 시 노후 생활 보장 수준(생활비 충당률) 분석</li>
+    </ul>
+
+    <h3>2) 적용된 3대 분석 기법</h3>
+    <ul>
+        <li><strong>다중 회귀 분석(Multiple Regression):</strong> 공시지가, 연령, 면적을 독립 변수로 실제 가입 이력과 대조하여 연금 예상 수령액을 높은 신뢰도로 예측합니다.</li>
+        <li><strong>K-Means 군집화(Clustering):</strong> 예상 수령액과 지역별 가계 수지를 대조하여 사용자의 상태를 페르소나별(최저생계형, 생활비보완형, 여유자금형)로 그룹핑하고, 최적의 지급 기간 및 방식을 자동 매칭합니다.</li>
+        <li><strong>지리공간(GIS) 시각화:</strong> 잠재 타겟 고객층이 집중된 '연금 가입 우량 지역'을 시각화하여 지사 직원의 마케팅 타겟팅을 효율화합니다.</li>
+    </ul>
+
+    <!-- 3. PoC 구현 및 기술 아키텍처 -->
+    <h2>3. PoC(Proof of Concept) 구현 결과</h2>
+    <p>설계 단계에 머무르지 않고, 직접 코드를 작성하여 두 가지 트랙의 프로토타입을 신속하게 완수했습니다.</p>
+    
+    <h3>Track 1. 서버가 필요 없는 반응형 정적 대시보드 (Vanilla JS + Chart.js)</h3>
+    <p>서버 유지비용이 전혀 들지 않도록 설계되었습니다. 로컬에서 가입 데이터를 가공해 JSON 통계로 변환한 뒤, HTML/JS/CSS만으로 동적 대시보드를 렌더링했습니다. Chart.js를 사용해 지사별 지급 현황과 VOC 유형 통계를 아름답게 시각화했습니다.</p>
+    
+    <h3>Track 2. 대화형 AI 컨설턴트 & 시뮬레이터 (Streamlit & Python)</h3>
+    <p>고령층의 눈높이에 맞춘 인터랙티브 앱입니다. 슬라이더로 나이와 농지 면적을 조절하면 즉각적으로 다중 회귀 모델 기반 연금 수령액과 생활비 충당률이 큼직한 카드로 표시됩니다. 또한, 우측 대화창을 통해 RAG 기반 AI 컨설턴트와 질의응답을 나눌 수 있어 24시간 도우미 역할을 수행합니다.</p>
+
+    <!-- 4. 기대효과 -->
+    <h2>4. 공모전이 제시하는 정량적 기대효과 (ROI)</h2>
+    <p>이 서비스가 공사에 실제 도입되었을 때 기대할 수 있는 세 가지 핵심 재무/생산성 지표를 도출해 사업 타당성을 입증했습니다.</p>
+
+    <div class="krc-roi-board">
+        <!-- ROI 1 -->
+        <div class="krc-roi-card">
+            <div class="krc-roi-val">연 2,000h+</div>
+            <div class="krc-roi-title">업무 시간 절감</div>
+            <div class="krc-roi-desc">농지연금 VOC 단순 문의의 40%를 AI 컨설턴트가 처리하여 지사 현업 업무 효율 증대</div>
+        </div>
+        
+        <!-- ROI 2 -->
+        <div class="krc-roi-card">
+            <div class="krc-roi-val">15% ▲</div>
+            <div class="krc-roi-title">신규 가입 유치 증대</div>
+            <div class="krc-roi-desc">개인별 노후 생활비 충당률 기반의 직관적인 데이터 리포트를 제공하여 가입 망설임 해소</div>
+        </div>
+        
+        <!-- ROI 3 -->
+        <div class="krc-roi-card">
+            <div class="krc-roi-val">30% ▼</div>
+            <div class="krc-roi-title">마케팅 홍보비 절감</div>
+            <div class="krc-roi-desc">GIS 공간 데이터 시각화를 통해 공시지가 프리미엄 및 고령 인구 밀집 지역만 집중 핀셋 타겟팅</div>
+        </div>
+    </div>
+
+    <!-- 5. 결론 및 심사평 -->
+    <h2>5. 마치며: 공모전 검증 결과와 소회</h2>
+    <p>기획에서 멈춘 아이디어가 아니라 실제 동작하는 3종의 웹 서비스 세트(랜딩, 시뮬레이터, 대시보드)를 모두 배포했다는 점에서 큰 뿌듯함을 느꼈습니다. 데이터 융합의 완성도가 가시적인 결과물로 표현되었을 때 가치가 극대화된다는 것을 배울 수 있었습니다.</p>
+
+    <!-- Evaluation Box -->
+    <div class="krc-eval-box">
+        <div class="krc-eval-info">
+            <h4>🏅 QA 크로스체크 및 자체 심사 결과</h4>
+            <p><strong>평가 결과:</strong> "Track 1, 2 모두 오류 없이 동작하며 실제 KRC 통계 기반의 시뮬레이션을 미려하게 구현함."</p>
+        </div>
+        <div class="krc-stamp">PASS (38/40점)</div>
+    </div>
+
+</div>

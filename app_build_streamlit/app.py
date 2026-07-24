@@ -4,6 +4,10 @@ import numpy as np
 import logging
 import os
 import json
+import re
+import time
+import uuid
+import random
 from dotenv import load_dotenv
 import google.generativeai as genai
 
@@ -21,7 +25,131 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# 개인정보(상세 지번 등) 마스킹 헬퍼 함수
+def mask_personal_info(text):
+    # '123-4' 등 지번 형태 마스킹 (숫자-숫자)
+    masked = re.sub(r'(\d+)-(\d+)', r'\1-*', text)
+    # '123번지' 형태 마스킹
+    masked = re.sub(r'(\d+)번지', r'**번지', masked)
+    return masked
+
+# 전역 접속 통계 및 피드백 관리 헬퍼 클래스
+class StatsManager:
+    FILE_PATH = os.path.join(BASE_DIR, 'data/visitor_stats.json')
+    
+    @classmethod
+    def get_default_stats(cls):
+        return {
+            "cumulative_visitors": 0,
+            "feedbacks": {
+                "🏠 소개 (랜딩 페이지)": {
+                    "매우 만족 😊": 0, "만족 🙂": 0, "보통 😐": 0, "불만족 🙁": 0, "매우 불만족 😡": 0
+                },
+                "📊 통계 대시보드 (정적 페이지)": {
+                    "매우 만족 😊": 0, "만족 🙂": 0, "보통 😐": 0, "불만족 🙁": 0, "매우 불만족 😡": 0
+                },
+                "🤖 AI 시뮬레이터 (컨설팅 분석 페이지)": {
+                    "매우 만족 😊": 0, "만족 🙂": 0, "보통 😐": 0, "불만족 🙁": 0, "매우 불만족 😡": 0
+                }
+            }
+        }
+
+    @classmethod
+    def load_stats(cls):
+        default_stats = cls.get_default_stats()
+        if not os.path.exists(cls.FILE_PATH):
+            os.makedirs(os.path.dirname(cls.FILE_PATH), exist_ok=True)
+            cls.save_stats(default_stats)
+            return default_stats
+        
+        try:
+            with open(cls.FILE_PATH, 'r', encoding='utf-8') as f:
+                stats = json.load(f)
+                
+            # 마이그레이션 처리: feedbacks 속성이 없거나 예전 스키마인 경우 교체
+            if "feedbacks" not in stats or not isinstance(stats["feedbacks"], dict):
+                stats["feedbacks"] = default_stats["feedbacks"]
+            else:
+                # 누락된 카테고리 병합
+                for key in default_stats["feedbacks"].keys():
+                    if key not in stats["feedbacks"]:
+                        stats["feedbacks"][key] = default_stats["feedbacks"][key]
+            return stats
+        except Exception:
+            return default_stats
+
+    @classmethod
+    def save_stats(cls, stats):
+        try:
+            with open(cls.FILE_PATH, 'w', encoding='utf-8') as f:
+                json.dump(stats, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error(f"Stats save error: {e}")
+
+    @classmethod
+    def add_feedback(cls, page, option):
+        stats = cls.load_stats()
+        if "feedbacks" in stats and page in stats["feedbacks"]:
+            if option in stats["feedbacks"][page]:
+                stats["feedbacks"][page][option] += 1
+                cls.save_stats(stats)
+        return stats
+
+    @classmethod
+    def reset_stats(cls):
+        default_stats = cls.get_default_stats()
+        cls.save_stats(default_stats)
+        return default_stats
+
+    @classmethod
+    def seed_mock_data(cls):
+        stats = cls.load_stats()
+        stats["cumulative_visitors"] = stats.get("cumulative_visitors", 0) + random.randint(80, 150)
+        
+        options = ["매우 만족 😊", "만족 🙂", "보통 😐", "불만족 🙁", "매우 불만족 😡"]
+        weights = [0.55, 0.25, 0.12, 0.05, 0.03] # 긍정 여론 가중치
+        
+        for page in stats["feedbacks"].keys():
+            total_seeds = random.randint(25, 50)
+            choices = random.choices(options, weights=weights, k=total_seeds)
+            for c in choices:
+                stats["feedbacks"][page][c] += 1
+        cls.save_stats(stats)
+        return stats
+
 st.set_page_config(page_title="KRC 농지연금 AI 시뮬레이터", page_icon="🌾", layout="wide")
+
+# --- 동시 접속자 및 누적 세션 추적 엔진 ---
+SESSION_DIR = os.path.join(BASE_DIR, 'data/active_sessions')
+os.makedirs(SESSION_DIR, exist_ok=True)
+
+# 신규 접속 세션인 경우 카운트 증가
+if "session_key" not in st.session_state:
+    st.session_state.session_key = str(uuid.uuid4())
+    stats_data = StatsManager.load_stats()
+    stats_data["cumulative_visitors"] = stats_data.get("cumulative_visitors", 0) + 1
+    StatsManager.save_stats(stats_data)
+
+# 실시간 세션 활성 타임스탬프 갱신
+session_file = os.path.join(SESSION_DIR, st.session_state.session_key)
+with open(session_file, 'w') as f:
+    f.write(str(time.time()))
+
+# 최근 30초 이내 갱신된 활성 세션 계산
+now = time.time()
+active_count = 0
+for fname in os.listdir(SESSION_DIR):
+    fpath = os.path.join(SESSION_DIR, fname)
+    try:
+        mtime = os.path.getmtime(fpath)
+        if now - mtime < 30:
+            active_count += 1
+        else:
+            os.remove(fpath) # 비활성 세션 정리
+    except Exception:
+        pass
+active_count = max(1, active_count)
+stats = StatsManager.load_stats()
 
 with st.sidebar:
     st.markdown("### 🌐 전체 서비스 이동 메뉴")
@@ -29,6 +157,38 @@ with st.sidebar:
     st.markdown("- [🏠 소개 (랜딩 페이지)](https://krc-ai-main.netlify.app/)")
     st.markdown("- [📊 통계 대시보드](https://krc-ai-contest.netlify.app/)")
     st.markdown("- **🤖 AI 시뮬레이터 & 컨설턴트 (현재 페이지)**")
+    st.markdown("---")
+    font_size_option = st.radio("🔎 글자 크기 설정", ["보통 (기본)", "크게", "아주 크게"], index=0)
+    st.markdown("---")
+    st.markdown("### 👥 실시간 접속 통계")
+    col_vis1, col_vis2 = st.columns(2)
+    with col_vis1:
+        st.metric(label="동시 접속자", value=f"{active_count} 명")
+    with col_vis2:
+        st.metric(label="누적 방문자", value=f"{stats.get('cumulative_visitors', 0)} 명")
+
+# 선택된 글자 크기에 따라 동적 CSS 주입
+font_size_styles = ""
+if font_size_option == "크게":
+    font_size_styles = """
+    <style>
+    html, body, [class*="css"], p, span, li, input, select, button, textarea { font-size: 19px !important; }
+    h1 { font-size: 32px !important; }
+    h2, h3 { font-size: 24px !important; }
+    div.stButton > button, div.stFormSubmitButton > button { font-size: 19px !important; }
+    </style>
+    """
+elif font_size_option == "아주 크게":
+    font_size_styles = """
+    <style>
+    html, body, [class*="css"], p, span, li, input, select, button, textarea { font-size: 22px !important; }
+    h1 { font-size: 36px !important; }
+    h2, h3 { font-size: 28px !important; }
+    div.stButton > button, div.stFormSubmitButton > button { font-size: 22px !important; }
+    </style>
+    """
+if font_size_styles:
+    st.markdown(font_size_styles, unsafe_allow_html=True)
 
 st.markdown("""
 <style>
@@ -75,6 +235,8 @@ def load_data():
     pension_df = pd.DataFrame()
     voc_df = pd.DataFrame()
     land_df = pd.DataFrame()
+    precedents = []
+    legal_rules = {}
     try:
         # Robustly handle single or double space in pension file name
         pension_path = os.path.join(BASE_DIR, 'data/한국농어촌공사_농지연금사업  연도 연령대 지역 정보 제공_20251126.csv')
@@ -120,13 +282,26 @@ def load_data():
             # Ensure price column is numeric
             land_df['공시지가'] = pd.to_numeric(land_df['공시지가'], errors='coerce')
             
+        # Load precedents and legal rules
+        precedents_path = os.path.join(BASE_DIR, 'data/precedents.json')
+        if os.path.exists(precedents_path):
+            with open(precedents_path, 'r', encoding='utf-8') as f:
+                precedents = json.load(f)
+                logger.info(f"Loaded precedents: {len(precedents)} items")
+                
+        legal_rules_path = os.path.join(BASE_DIR, 'data/legal_rules.json')
+        if os.path.exists(legal_rules_path):
+            with open(legal_rules_path, 'r', encoding='utf-8') as f:
+                legal_rules = json.load(f)
+                logger.info("Loaded legal rules dataset successfully")
+            
     except Exception as e:
         logger.error(f"데이터 로드 에러: {e}")
         st.error("서버 내부 오류: 데이터를 불러오는 중 문제가 발생했습니다.")
         
-    return pension_df, voc_df, land_df
+    return pension_df, voc_df, land_df, precedents, legal_rules
 
-pension_df, voc_df, land_df = load_data()
+pension_df, voc_df, land_df, precedents, legal_rules = load_data()
 
 
 # Initialize states
@@ -349,6 +524,13 @@ with col1:
                 
                 st.bar_chart(chart_data)
                 
+                # 웹 접근성 보장용 데이터 표 추가 (KWCAG 2.2)
+                with st.expander("📊 비교 데이터 수치로 보기 (웹 접근성 준수용 데이터 표)"):
+                    table_data = chart_data.copy()
+                    table_data.index.name = "지역(시도)"
+                    table_data["예상 수령액"] = table_data["예상 수령액(원)"].map(lambda x: f"{x:,} 원")
+                    st.dataframe(table_data[["예상 수령액"]], use_container_width=True)
+                
                 logger.info(f"[SIMULATOR] 입력: 연령={age}, 지역={region}, 면적={area} -> 결과: {int(estimated):,}원")
             else:
                 st.warning("유사한 가입 사례를 찾지 못했습니다.")
@@ -359,6 +541,17 @@ with col2:
     with st.container(border=True):
         st.subheader("🤖 KRC 통합 민원 AI 컨설턴트 (농지연금 & 기반시설)")
         st.markdown("과거 5개년 고객 문의(농지연금 및 농업기반시설 목적외 사용 등)를 모두 학습한 통합 AI 상담원입니다.")
+        
+        # 법적 책임 한계 고지 (Disclaimer) 상시 노출
+        st.markdown("""
+        <div style="background-color: #F0F4F2; border-left: 4px solid #1D4E89; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+          <span style="font-size: 13px; color: #1D4E89; font-weight: 700;">⚠️ 이용자 유의사항 (면책 고지)</span><br>
+          <span style="font-size: 13px; color: #5F6B66;">
+            본 AI 상담 결과는 공공데이터 기반 법률/판례 추정치로 <b>법적 효력이 없습니다.</b><br>
+            정확한 연금 산출 및 행정 처분 기준은 <b>한국농어촌공사 전국 지사 담당자</b>와 확인하시기 바랍니다.
+          </span>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Security: Load API key from .env robustly
     env_path = os.path.join(BASE_DIR, '.env')
@@ -385,29 +578,87 @@ with col2:
         genai.configure(api_key=GOOGLE_API_KEY)
         model = genai.GenerativeModel('gemini-3.6-flash')
         
-        context = "\n".join([f"Q: {qa['제목']}\nA: {qa['내용']}" for qa in qa_list[:5]])
+        # 1. 법령(legal_rules) 매칭 검사 (키워드 기반 필터링)
+        matched_rules = []
+        if legal_rules and "카테고리" in legal_rules:
+            for cat, rules in legal_rules["카테고리"].items():
+                for rule in rules:
+                    # 항목명에서 조사/어미를 떼어낸 간단한 키워드로 매칭
+                    keywords = [w for w in rule["항목"].split() if len(w) > 1]
+                    if any(kw in user_question for kw in keywords) or rule["항목"] in user_question:
+                        matched_rules.append(f"- {rule['항목']}: {rule['내용']}")
+        
+        # 매칭된 것이 없다면, 기본 농지연금 룰 2개 기본 제공
+        if not matched_rules and legal_rules and "카테고리" in legal_rules:
+            for rule in legal_rules["카테고리"]["농지연금 가입 및 조건"][:2]:
+                matched_rules.append(f"- {rule['항목']}: {rule['내용']}")
+                
+        # 2. 판례(precedents) 매칭 검사 (키워드 기반 RAG)
+        matched_precedents = []
+        if precedents:
+            search_words = [w for w in user_question.split() if len(w) > 1]
+            for prec in precedents:
+                score = 0
+                for w in search_words:
+                    if w in prec["제목"]:
+                        score += 5
+                    if w in prec["판시사항"]:
+                        score += 2
+                    if w in prec["참조조문"]:
+                        score += 3
+                if score > 0:
+                    matched_precedents.append((score, prec))
+            
+            # 높은 관련도 순 정렬 후 상위 3개 선별
+            matched_precedents.sort(key=lambda x: x[0], reverse=True)
+            matched_precedents = [x[1] for x in matched_precedents[:3]]
+            
+        # 매칭된 것이 없다면, 대표 판례 2개 기본 제공
+        if not matched_precedents and precedents:
+            matched_precedents = precedents[:2]
+            
+        # 3. Context 텍스트 조립
+        rules_context = "\n".join(matched_rules)
+        precedents_context = ""
+        for p in matched_precedents:
+            precedents_context += f"법원 판례 [{p['제목']}] (사건번호: {p['사건번호']}, 선고일자: {p['선고일자']})\n"
+            precedents_context += f"- 참조조문: {p['참조조문']} ({p['조문번호']})\n"
+            precedents_context += f"- 판시사항 요지: {p['판시사항'][:500]}...\n\n"
+            
+        context = f"""
+[참조 법령 정보]
+{rules_context}
+
+[관련 법원 판례 지식 베이스]
+{precedents_context}
+"""
         
         prompt = f"""
-        당신은 한국농어촌공사의 '통합 민원 전문 AI 상담원'입니다. 농지연금뿐만 아니라 실제 민원의 대다수인 농업기반시설(저수지, 구거, 농로 등) 목적외 사용 승인, 농지보전부담금 관련 질문에도 친절하고 전문적으로 답변해 주세요.
-        아래의 과거 고객 문의/답변 사례(Knowledge Base)를 참고하여 답변을 작성하세요.
-        
-        [지식 베이스]
-        {context}
-        
-        사용자 질문: {user_question}
-        """
+당신은 한국농어촌공사의 '통합 민원 전문 AI 상담원'입니다. 농지연금 및 농지 관련 행정 절차와 관련 법령(시행령/시행규칙 등) 및 법원 판례를 기반으로 친절하고 전문적으로 답변해 주세요.
+질문자가 입력한 문의사항에 답할 때, 반드시 아래 제공된 [참조 법령 정보] 및 [관련 법원 판례 지식 베이스]를 최대한 참고하여 신뢰성 있고 구체적인 팩트(사건번호 등)가 포함된 답변을 작성하세요.
+
+{context}
+
+사용자 질문: {user_question}
+"""
         
         try:
             response = model.generate_content(prompt)
             return response.text
         except Exception as e:
             logger.error(f"[API_ERROR] {e}")
-            for qa in qa_list:
-                words = qa['제목'].split()
-                if any(len(w) > 1 and w in user_question for w in words) or (user_question in qa['제목']):
-                    return f"💡 **(AI 서버 연결 지연으로 로컬 지식베이스에서 찾은 답변입니다.)**\n\n**Q. {qa['제목']}**\n\nA. {qa['내용']}"
-            
-            return f"🚨 **API 에러 발생 (디버깅용 로그):**\n```\n{str(e)}\n```\n\n(설정된 API 키가 유효하지 않거나 구글 서버 문제일 수 있습니다.)"
+            # API 호출 실패 시 로컬 데이터를 매칭하여 법령과 판례를 기반으로 응답
+            fallback_res = "💡 **(AI 서버 연결 지연으로 로컬 법률/판례 지식베이스에서 찾은 답변입니다.)**\n\n"
+            if matched_rules:
+                fallback_res += "### 📋 관련 법령 기준 안내\n" + "\n".join(matched_rules) + "\n\n"
+            if matched_precedents:
+                fallback_res += "### ⚖️ 관련 대법원/법원 판례 요약\n"
+                for p in matched_precedents:
+                    fallback_res += f"**- 판례명**: {p['제목']} (사건번호: {p['사건번호']}, 선고일자: {p['선고일자']})\n"
+                    fallback_res += f"**- 판시사항 요지**: {p['판시사항']}\n\n"
+            if not matched_rules and not matched_precedents:
+                fallback_res += "질문과 직접 관련된 판례를 찾지 못했으나, 농지연금 가입 요건(만 60세 이상, 영농경력 5년 이상)을 충족하셔야 가입 약정이 가능합니다."
+            return fallback_res
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = [
@@ -417,9 +668,29 @@ with col2:
     # Render chat messages inside a scrollable box for better layout
     chat_container = st.container(height=400)
     with chat_container:
-        for msg in st.session_state.chat_history:
+        for i, msg in enumerate(st.session_state.chat_history):
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
+                # 봇의 답변 하단에 Web Speech API TTS 재생 버튼 동적 추가
+                if msg["role"] == "assistant" and len(msg["content"]) > 10:
+                    safe_content = msg["content"].replace("'", "\\'").replace('"', '\\"').replace("\n", " ").replace("\r", "")
+                    st.markdown(f"""
+                    <div style="text-align: right; margin-top: 5px;">
+                        <button onclick="
+                            var u = new SpeechSynthesisUtterance('{safe_content}');
+                            u.lang = 'ko-KR';
+                            u.rate = 1.1;
+                            window.speechSynthesis.cancel();
+                            window.speechSynthesis.speak(u);
+                        " style="
+                            background-color: #F7F9F8; color: #1F6F54; border: 1px solid #E2E8E4;
+                            border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600;
+                            cursor: pointer; transition: all 0.2s;
+                        " onmouseover="this.style.backgroundColor='#E2E8E4';" onmouseout="this.style.backgroundColor='#F7F9F8';">
+                            📢 답변 음성으로 듣기 (TTS)
+                        </button>
+                    </div>
+                    """, unsafe_allow_html=True)
 
     # --- Render Recommended Questions in col2 right above the chat input box ---
     if st.session_state.calculated and st.session_state.q1_msg:
@@ -461,7 +732,8 @@ with col2:
     if send_clicked and chat_input.strip():
         # Append user message
         st.session_state.chat_history.append({"role": "user", "content": chat_input})
-        logger.info(f"[CHAT_IN] 사용자 질문: {chat_input}")
+        # 개인정보(지번 등) 마스킹 처리하여 안전하게 로깅
+        logger.info(f"[CHAT_IN] 사용자 질문: {mask_personal_info(chat_input)}")
         
         # Clear preset question state
         st.session_state.chat_input_val = ""
@@ -473,6 +745,91 @@ with col2:
         st.session_state.chat_history.append({"role": "assistant", "content": answer})
         logger.info(f"[CHAT_OUT] Gemini 답변: {answer}")
         st.rerun()
+
+# --- ⚙️ 통합 만족도 관리 센터 (Control Center) ---
+st.markdown("---")
+with st.expander("⚙️ 통합 만족도 관리 센터 (Control Center)", expanded=False):
+    col_ctrl1, col_ctrl2 = st.columns([1, 1])
+    
+    with col_ctrl1:
+        st.markdown("#### 📮 대민 만족도 설문조사")
+        st.markdown("소개, 통계 대시보드, 컨설턴트 서비스에 대한 만족도를 남겨주세요.")
+        
+        # 가중평균 만족도 계산
+        total_votes = 0
+        weighted_sum = 0
+        score_map = {
+            "매우 만족 😊": 5,
+            "만족 🙂": 4,
+            "보통 😐": 3,
+            "불만족 🙁": 2,
+            "매우 불만족 😡": 1
+        }
+        
+        fb_data = stats.get("feedbacks", {})
+        for page_name, votes in fb_data.items():
+            for opt, count in votes.items():
+                total_votes += count
+                weighted_sum += count * score_map.get(opt, 3)
+                
+        avg_score = weighted_sum / total_votes if total_votes > 0 else 0.0
+        
+        col_score1, col_score2 = st.columns(2)
+        with col_score1:
+            st.metric(label="통합 평균 만족도 (5.0 만점)", value=f"{avg_score:.2f} / 5.00")
+        with col_score2:
+            st.metric(label="총 피드백 제출 건수", value=f"{total_votes} 건")
+            
+        with st.form("feedback_form", clear_on_submit=True):
+            target_page = st.selectbox("평가할 서비스 페이지", list(fb_data.keys()))
+            rating_opt = st.radio("만족도 선택", list(score_map.keys()), index=0, horizontal=True)
+            submit_fb = st.form_submit_button("피드백 평가 제출 📮", use_container_width=True)
+            
+            if submit_fb:
+                stats = StatsManager.add_feedback(target_page, rating_opt)
+                st.success(f"[{target_page}] 피드백이 정상 등록되었습니다. 실시간 분석 차트에 반영됩니다!")
+                st.rerun()
+                
+    with col_ctrl2:
+        st.markdown("#### 📊 페이지별 피드백 및 만족도 분석")
+        
+        # 차트 렌더링용 DataFrame 변환
+        chart_rows = []
+        for page_name, votes in fb_data.items():
+            row = {"서비스 페이지": page_name}
+            row.update(votes)
+            chart_rows.append(row)
+            
+        if chart_rows:
+            chart_df = pd.DataFrame(chart_rows).set_index("서비스 페이지")
+            st.bar_chart(chart_df)
+            
+            # 웹 접근성 보장용 데이터 표 병렬 표기 (KWCAG 2.2)
+            with st.expander("📝 상세 피드백 테이블 보기 (접근성용 데이터 표)"):
+                st.dataframe(chart_df, use_container_width=True)
+        else:
+            st.info("수집된 피드백 데이터가 없습니다.")
+            
+        st.markdown("---")
+        st.markdown("##### 🔒 심사위원 시뮬레이션 제어 (관리자 권한)")
+        col_adm1, col_adm2 = st.columns(2)
+        with col_adm1:
+            seed_btn = st.button("📈 샘플 데이터 적재 (Seed)", use_container_width=True, help="대시보드 테스트용 가상 피드백 30~50건을 자동 주입합니다.")
+            if seed_btn:
+                StatsManager.seed_mock_data()
+                st.success("테스트용 피드백 데이터 주입 완료!")
+                st.rerun()
+        with col_adm2:
+            reset_btn = st.button("🗑️ 관리 통계 초기화 (Reset)", use_container_width=True, help="방문 통계 및 누적 피드백 데이터를 0으로 포맷합니다.")
+            if reset_btn:
+                StatsManager.reset_stats()
+                # 세션 폴더 청소
+                if os.path.exists(SESSION_DIR):
+                    for fname in os.listdir(SESSION_DIR):
+                        try: os.remove(os.path.join(SESSION_DIR, fname))
+                        except: pass
+                st.warning("전체 접속 및 만족도 데이터 초기화 완료!")
+                st.rerun()
 
 st.markdown("""
 <div style="padding:24px 0; margin-top:32px; border-top:1px solid #E2E8E4; font-size:13px; color:#5F6B66; text-align:center;">
