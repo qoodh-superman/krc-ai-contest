@@ -809,27 +809,6 @@ with st.expander("⚙️ 통합 만족도 관리 센터 (Control Center)", expan
                 st.dataframe(chart_df, use_container_width=True)
         else:
             st.info("수집된 피드백 데이터가 없습니다.")
-            
-        st.markdown("---")
-        st.markdown("##### 🔒 심사위원 시뮬레이션 제어 (관리자 권한)")
-        col_adm1, col_adm2 = st.columns(2)
-        with col_adm1:
-            seed_btn = st.button("📈 샘플 데이터 적재 (Seed)", use_container_width=True, help="대시보드 테스트용 가상 피드백 30~50건을 자동 주입합니다.")
-            if seed_btn:
-                StatsManager.seed_mock_data()
-                st.success("테스트용 피드백 데이터 주입 완료!")
-                st.rerun()
-        with col_adm2:
-            reset_btn = st.button("🗑️ 관리 통계 초기화 (Reset)", use_container_width=True, help="방문 통계 및 누적 피드백 데이터를 0으로 포맷합니다.")
-            if reset_btn:
-                StatsManager.reset_stats()
-                # 세션 폴더 청소
-                if os.path.exists(SESSION_DIR):
-                    for fname in os.listdir(SESSION_DIR):
-                        try: os.remove(os.path.join(SESSION_DIR, fname))
-                        except: pass
-                st.warning("전체 접속 및 만족도 데이터 초기화 완료!")
-                st.rerun()
 
 st.markdown("""
 <div style="padding:24px 0; margin-top:32px; border-top:1px solid #E2E8E4; font-size:13px; color:#5F6B66; text-align:center;">
