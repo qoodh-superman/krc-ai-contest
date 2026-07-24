@@ -152,14 +152,6 @@ active_count = max(1, active_count)
 stats = StatsManager.load_stats()
 
 with st.sidebar:
-    st.markdown("### 🧭 서비스 페이지 이동")
-    menu = st.selectbox(
-        "이동할 페이지를 선택하세요:",
-        ["🏠 프로젝트 소개", "📊 통계 대시보드", "🤖 AI 시뮬레이터 & 컨설턴트"],
-        index=2,
-        key="app_menu"
-    )
-    st.markdown("---")
     st.markdown("### 🔗 Netlify 원본 (다음 달 자동 복구)")
     st.markdown("- [🏠 소개 페이지 원본](https://krc-ai-main.netlify.app/)")
     st.markdown("- [📊 통계 대시보드 원본](https://krc-ai-contest.netlify.app/)")
@@ -227,11 +219,22 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div style="padding:16px 0; border-bottom:1px solid #E2E8E4; margin-bottom:24px;">
-  <span style="font-size:13px; color:#5F6B66; font-weight:600;">한국농어촌공사 · 제3회 KRC AI 디지털혁신 공모전</span>
-</div>
-""", unsafe_allow_html=True)
+col_top_text, col_top_menu = st.columns([1.6, 1])
+with col_top_text:
+    st.markdown("""
+    <div style="padding: 10px 0;">
+      <span style="font-size:14px; color:#5F6B66; font-weight:700; line-height: 2.2;">🌾 한국농어촌공사 · 제3회 KRC AI 디지털혁신 공모전</span>
+    </div>
+    """, unsafe_allow_html=True)
+with col_top_menu:
+    menu = st.selectbox(
+        "서비스 페이지 이동",
+        ["🏠 프로젝트 소개", "📊 통계 대시보드", "🤖 AI 시뮬레이터 & 컨설턴트"],
+        index=2,
+        label_visibility="collapsed",
+        key="app_menu"
+    )
+st.markdown("<hr style='margin-top:0px; margin-bottom:24px; border:0; border-top:1px solid #E2E8E4;'>", unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
